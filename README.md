@@ -28,15 +28,16 @@ docker compose up --build
 
 > DB 헬스체크 통과 후 앱이 기동되므로, 최초 실행 시 30초~1분 정도 소요될 수 있습니다.
 
-### 환경 변수 (선택)
+### 환경 변수 설정 (필수)
 
-기본값으로 바로 실행되며, 필요 시 `.env` 파일로 재정의할 수 있습니다.
+보안을 위해 데이터베이스 접속 정보는 `.env` 파일로 관리해야 합니다.
+애플리케이션을 실행하기 전, 프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래와 같이 자신의 환경에 맞는 값을 설정해주세요.
 
 ```env
 MYSQL_DATABASE=everspin
-MYSQL_USER=everspin
-MYSQL_PASSWORD=everspin
-MYSQL_ROOT_PASSWORD=everspin
+MYSQL_USER=myuser
+MYSQL_PASSWORD=mypassword
+MYSQL_ROOT_PASSWORD=myrootpassword
 ```
 
 ### 초기 계정

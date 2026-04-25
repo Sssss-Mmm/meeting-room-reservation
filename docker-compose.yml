@@ -8,9 +8,9 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_NAME=${MYSQL_DATABASE:-everspin}
-      - DB_USER=${MYSQL_USER:-everspin}
-      - DB_PASSWORD=${MYSQL_PASSWORD:-everspin}
+      - DB_NAME=${MYSQL_DATABASE}
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
       - SPRING_PROFILES_ACTIVE=prod
     depends_on:
       db:
@@ -22,10 +22,10 @@ services:
     ports:
       - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-everspin}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-everspin}
-      - MYSQL_USER=${MYSQL_USER:-everspin}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-everspin}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - db-data:/var/lib/mysql
     healthcheck:
