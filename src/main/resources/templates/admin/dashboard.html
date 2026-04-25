@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html th:replace="~{layout/base :: layout(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+
+<body>
+  <div th:fragment="content">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">
+          <i class="bi bi-speedometer2 color-blue"></i> 관리자 대시보드
+        </h1>
+        <p class="page-subtitle">예약 현황을 관리하세요</p>
+      </div>
+      <a th:href="@{/admin/rooms}" class="btn-secondary">
+        <i class="bi bi-gear"></i> 회의실 관리
+      </a>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert-danger mb-3">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-yellow">
+          <i class="bi bi-hourglass-split color-yellow" style="font-size:1.3rem;"></i>
+        </div>
+        <div>
+          <p class="stat-label">승인 대기</p>
+          <p class="stat-value color-yellow" th:text="${pendingReservations.totalElements}">0</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-green">
+          <i class="bi bi-calendar-day color-green" style="font-size:1.3rem;"></i>
+        </div>
+        <div>
+          <p class="stat-label">오늘 일정</p>
+          <p class="stat-value color-green" th:text="${#lists.size(todayReservations)}">0</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+          <i class="bi bi-clock color-blue" style="font-size:1.3rem;"></i>
+        </div>
+        <div>
+          <p class="stat-label">현재 시각</p>
+          <p class="stat-value color-blue text-mono" style="font-size:1.1rem;" id="live-clock">--:--</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Reservations -->
+    <div class="card mb-3" style="margin-left: 0.5rem; margin-right: 0.5rem;">
+      <div class="card-header">
+        <div class="d-flex align-center gap-sm">
+          <span class="status-dot status-dot-yellow"></span>
+          <h2 style="font-size:1rem;font-weight:700;margin:0;">승인 대기 현황</h2>
+        </div>
+        <span class="badge badge-pending" th:text="${pendingReservations.totalElements} + '건'">0건</span>
+      </div>
+
+      <div th:if="${not pendingReservations.isEmpty()}" class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>신청자</th>
+              <th>회의실</th>
+              <th>제목</th>
+              <th>일정</th>
+              <th>인원</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="res : ${pendingReservations.content}">
+              <td>
+                <span class="fw-600" th:text="${res.user.name}">홍길동</span>
+              </td>
+              <td th:text="${res.room.name}">회의실</td>
+              <td th:text="${res.title}" class="text-truncate">제목</td>
+              <td>
+                <span class="text-mono color-sub" style="font-size:0.8rem;"
+                  th:text="${#temporals.format(res.startTime, 'MM/dd HH:mm')} + ' ~ ' + ${#temporals.format(res.endTime, 'HH:mm')}">시간</span>
+              </td>
+              <td th:text="${res.attendees} + '명'" class="color-sub" style="font-size:0.85rem;">-</td>
+              <td>
+                <div class="d-flex align-center gap-sm">
+                  <form th:action="@{/admin/reservations/{id}/approve(id=${res.id})}" method="post"
+                    onsubmit="return confirm('승인하시겠습니까?');" class="m-0">
+                    <button type="submit" class="btn-primary btn-sm" style="background:#10B981;border-color:#10B981;">
+                      <i class="bi bi-check-lg"></i> 승인
+                    </button>
+                  </form>
+                  <form th:action="@{/admin/reservations/{id}/reject(id=${res.id})}" method="post"
+                    class="d-flex align-center gap-xs m-0" onsubmit="return confirm('반려하시겠습니까?');">
+                    <input type="text" name="reason" placeholder="반려 사유 입력" class="form-control" required
+                      style="width:140px;padding:0.35rem 0.6rem;font-size:0.8rem;min-height:30px;">
+                    <button type="submit" class="btn-danger btn-sm">
+                      <i class="bi bi-x-lg"></i> 반려
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div th:if="${pendingReservations.isEmpty()}" class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>승인 대기 중인 예약이 없습니다.</p>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" th:if="${pendingReservations.totalPages > 1}">
+        <a th:href="@{/admin/dashboard(pendingPage=${pendingReservations.number - 1})}"
+           th:class="${pendingReservations.hasPrevious()} ? 'page-btn' : 'page-btn disabled'">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+        <a th:each="i : ${#numbers.sequence(0, pendingReservations.totalPages - 1)}"
+           th:href="@{/admin/dashboard(pendingPage=${i})}"
+           th:class="${i == pendingReservations.number} ? 'page-btn active' : 'page-btn'"
+           th:text="${i + 1}">1</a>
+        <a th:href="@{/admin/dashboard(pendingPage=${pendingReservations.number + 1})}"
+           th:class="${pendingReservations.hasNext()} ? 'page-btn' : 'page-btn disabled'">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Today's Schedule -->
+    <div class="card" style="margin-left: 0.5rem; margin-right: 0.5rem;">
+      <div class="card-header">
+        <div class="d-flex align-center gap-sm">
+          <span class="status-dot status-dot-blue"></span>
+          <h2 style="font-size:1rem;font-weight:700;margin:0;">오늘의 전체 스케줄</h2>
+        </div>
+      </div>
+
+      <div th:if="${not #lists.isEmpty(todayReservations)}" class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>회의실</th>
+              <th>예약자</th>
+              <th>시간</th>
+              <th>제목</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="res : ${todayReservations}">
+              <td class="fw-600" th:text="${res.room.name}">회의실</td>
+              <td th:text="${res.user.name}">예약자</td>
+              <td>
+                <span class="text-mono color-sub" style="font-size:0.85rem;"
+                  th:text="${#temporals.format(res.startTime, 'HH:mm')} + ' ~ ' + ${#temporals.format(res.endTime, 'HH:mm')}">시간</span>
+              </td>
+              <td th:text="${res.title}">제목</td>
+              <td>
+                <span th:if="${res.status.name() == 'PENDING'}" class="badge badge-pending">대기</span>
+                <span th:if="${res.status.name() == 'CONFIRMED'}" class="badge badge-confirmed">확정</span>
+                <span th:if="${res.status.name() == 'REJECTED'}" class="badge badge-rejected">반려</span>
+                <span th:if="${res.status.name() == 'CANCELLED'}" class="badge badge-cancelled">취소</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div th:if="${#lists.isEmpty(todayReservations)}" class="empty-state">
+        <i class="bi bi-calendar-event"></i>
+        <p>오늘 등록된 일정이 없습니다.</p>
+      </div>
+    </div>
+
+    <script>
+      function updateClock() {
+        var now = new Date();
+        var h = String(now.getHours()).padStart(2, '0');
+        var m = String(now.getMinutes()).padStart(2, '0');
+        var s = String(now.getSeconds()).padStart(2, '0');
+        var el = document.getElementById('live-clock');
+        if (el) el.textContent = h + ':' + m + ':' + s;
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+    </script>
+
+  </div>
+</body>
+
+</html>

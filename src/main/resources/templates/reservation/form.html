@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html th:replace="~{layout/base :: layout(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+
+<body>
+  <div th:fragment="content">
+    <div class="container-md">
+
+      <div class="page-header-back">
+        <a th:href="@{/reservations}" class="btn-secondary btn-round btn-sm">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="page-title">회의실 예약 신청</h1>
+          <p class="page-subtitle">예약 정보를 입력해주세요</p>
+        </div>
+      </div>
+
+      <div th:if="${errorMessage}" class="alert-danger mb-2">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <span th:text="${errorMessage}">오류</span>
+      </div>
+      <!-- Flatpickr CSS -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+      <style>
+        .flatpickr-calendar {
+          font-family: 'Inter', sans-serif !important;
+          box-shadow: var(--shadow-md) !important;
+          border: 1px solid var(--border) !important;
+          border-radius: var(--radius) !important;
+        }
+
+        .flatpickr-day.selected {
+          background: var(--blue) !important;
+          border-color: var(--blue) !important;
+        }
+
+        .date-input-wrapper {
+          position: relative;
+        }
+
+        .date-input-wrapper .bi {
+          position: absolute;
+          right: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-light);
+          pointer-events: none;
+          font-size: 1rem;
+        }
+
+        .date-input-wrapper input {
+          padding-right: 2.5rem;
+          cursor: pointer;
+        }
+
+        .time-row {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          gap: 0.5rem;
+          align-items: end;
+        }
+
+        .time-col label {
+          display: block;
+          margin-bottom: 0.4rem;
+        }
+
+        .time-inner {
+          display: flex;
+          gap: 0.4rem;
+          align-items: center;
+        }
+
+        .time-inner select {
+          flex: 1;
+        }
+
+        .time-sep-col {
+          display: flex;
+          align-items: center;
+          padding-bottom: 0.1rem;
+        }
+
+        .time-arrow {
+          font-size: 1.1rem;
+          color: var(--text-light);
+          margin-bottom: 0.35rem;
+        }
+
+        .attendees-stepper {
+          display: flex;
+          align-items: center;
+          background: var(--white);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          width: fit-content;
+          min-width: 150px;
+        }
+
+        .stepper-btn {
+          width: 40px;
+          height: 40px;
+          background: var(--bg);
+          border: none;
+          color: var(--text-main);
+          font-size: 1.2rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: var(--transition);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .stepper-btn:hover {
+          background: var(--border);
+        }
+
+        .stepper-display {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.2rem;
+        }
+
+        .stepper-input {
+          width: 100%;
+          border: none;
+          background: transparent;
+          text-align: center;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-main);
+          outline: none;
+          padding: 0;
+          font-family: 'Inter', sans-serif;
+          -moz-appearance: textfield;
+        }
+
+        .stepper-input::-webkit-outer-spin-button,
+        .stepper-input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        .stepper-unit {
+          color: var(--text-sub);
+          font-size: 0.8rem;
+          font-weight: 500;
+          flex-shrink: 0;
+        }
+
+        .booking-summary {
+          background: var(--blue-light);
+          border: 1px solid var(--blue-mid);
+          border-radius: var(--radius-sm);
+          padding: 1rem 1.25rem;
+          margin-bottom: 1.5rem;
+          display: none;
+        }
+
+        .booking-summary.visible {
+          display: block;
+        }
+
+        .booking-summary-label {
+          font-size: 0.72rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--blue);
+          margin-bottom: 0.4rem;
+        }
+
+        .booking-summary-value {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--text-main);
+        }
+
+        .booking-duration-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          background: #ECFDF5;
+          border: 1px solid #A7F3D0;
+          color: #059669;
+          font-size: 0.78rem;
+          font-weight: 600;
+          padding: 0.25rem 0.7rem;
+          border-radius: 50px;
+        }
+      </style>
+
+      <div class="card">
+        <div class="card-body">
+          <form th:action="@{/reservations/new}" th:object="${reservationRequest}" method="post" id="reservationForm">
+
+            <input type="hidden" id="startTime" name="startTime" th:field="*{startTime}">
+            <input type="hidden" id="endTime" name="endTime" th:field="*{endTime}">
+            <input type="hidden" id="roomIdHidden" name="roomId" th:value="${reservationRequest.roomId}">
+
+            <!-- ① 회의실 선택 -->
+            <div class="mb-3">
+              <label class="form-label">회의실 선택</label>
+              <select id="roomSelect" class="form-select"
+                th:classappend="${#fields.hasErrors('roomId')} ? ' is-invalid'">
+                <option value="">회의실을 선택하세요</option>
+                <option th:each="room : ${rooms}" th:value="${room.id}" th:attr="data-capacity=${room.capacity}"
+                  th:text="${room.name} + '  (최대 ' + ${room.capacity} + '명)'"
+                  th:selected="${param.roomId != null && param.roomId[0] == #strings.toString(room.id)}">
+                </option>
+              </select>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('roomId')}" th:errors="*{roomId}"></div>
+            </div>
+
+            <!-- ② 회의 제목 -->
+            <div class="mb-3">
+              <label class="form-label">회의 제목</label>
+              <input type="text" th:field="*{title}" class="form-control"
+                th:classappend="${#fields.hasErrors('title')} ? ' is-invalid'" placeholder="예: 주간 업무 보고, 프로젝트 킥오프">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
+            </div>
+
+            <!-- ③ 날짜 선택 -->
+            <div class="mb-2">
+              <label class="form-label">회의 날짜</label>
+              <div class="date-input-wrapper">
+                <input type="text" id="datePicker" class="form-control" placeholder="날짜를 선택하세요" readonly>
+                <i class="bi bi-calendar3"></i>
+              </div>
+            </div>
+
+            <!-- ④ 시작·종료 시간 -->
+            <div class="mb-3">
+              <div class="time-row">
+                <div class="time-col">
+                  <label class="form-label">시작 시간</label>
+                  <div class="time-inner">
+                    <select id="startHour" class="form-select"></select>
+                    <span class="fw-600">:</span>
+                    <select id="startMin" class="form-select">
+                      <option value="00">00분</option>
+                      <option value="30">30분</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="time-sep-col">
+                  <span class="time-arrow"><i class="bi bi-arrow-right"></i></span>
+                </div>
+                <div class="time-col">
+                  <label class="form-label">종료 시간</label>
+                  <div class="time-inner">
+                    <select id="endHour" class="form-select"></select>
+                    <span class="fw-600">:</span>
+                    <select id="endMin" class="form-select">
+                      <option value="00">00분</option>
+                      <option value="30">30분</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 예약 시간 요약 미리보기 -->
+            <div class="booking-summary" id="bookingSummary">
+              <div class="d-flex align-center justify-between flex-wrap gap-sm">
+                <div>
+                  <div class="booking-summary-label"><i class="bi bi-clock"></i> 예약 시간 요약</div>
+                  <div class="booking-summary-value" id="summaryText">-</div>
+                </div>
+                <div class="booking-duration-badge">
+                  <i class="bi bi-hourglass-split"></i>
+                  <span id="durationText">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ⑤ 참석 인원수 -->
+            <div class="mb-3">
+              <label class="form-label">참석 인원수</label>
+              <div class="d-flex align-center gap-1">
+                <div class="attendees-stepper">
+                  <button type="button" class="stepper-btn" id="decreaseBtn" onclick="changeAttendees(-1)">−</button>
+                  <div class="stepper-display">
+                    <input type="number" id="attendeesInput" name="attendees"
+                      th:value="${reservationRequest.attendees != null ? reservationRequest.attendees : 1}"
+                      class="stepper-input" min="1" value="1">
+                    <span class="stepper-unit">명</span>
+                  </div>
+                  <button type="button" class="stepper-btn" id="increaseBtn" onclick="changeAttendees(1)">+</button>
+                </div>
+                <p class="hint-text" id="capacityHint"></p>
+              </div>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('attendees')}" th:errors="*{attendees}"></div>
+            </div>
+
+            <!-- ⑥ 설명 -->
+            <div class="mb-3">
+              <label class="form-label">
+                예약 목적 및 설명 <span class="optional-label">(선택)</span>
+              </label>
+              <textarea th:field="*{description}" class="form-control" rows="3"
+                placeholder="회의 목적, 준비 사항 등을 입력하세요."></textarea>
+            </div>
+
+            <hr class="divider">
+            <div class="form-actions">
+              <a th:href="@{/reservations}" class="btn-secondary">
+                <i class="bi bi-x-lg"></i> 취소
+              </a>
+              <button type="submit" class="btn-primary">
+                <i class="bi bi-check-lg"></i> 예약 신청하기
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <script>
+      var selectedDate = '';
+      var currentAttendees = 1;
+      var maxCapacity = 999;
+
+      function getTodayStr() {
+        var t = new Date();
+        return t.getFullYear() + '-' +
+          String(t.getMonth() + 1).padStart(2, '0') + '-' +
+          String(t.getDate()).padStart(2, '0');
+      }
+
+      function initHourSelects() {
+        ['startHour', 'endHour'].forEach(function (id) {
+          var sel = document.getElementById(id);
+          for (var h = 7; h <= 22; h++) {
+            var opt = document.createElement('option');
+            opt.value = String(h).padStart(2, '0');
+            opt.textContent = String(h).padStart(2, '0') + '시';
+            sel.appendChild(opt);
+          }
+        });
+        var now = new Date();
+        var nextH = now.getHours();
+        var nextM = now.getMinutes() < 30 ? 30 : 0;
+        if (nextM === 0) nextH += 1;
+        nextH = Math.min(Math.max(nextH, 7), 21);
+        document.getElementById('startHour').value = String(nextH).padStart(2, '0');
+        document.getElementById('startMin').value = String(nextM).padStart(2, '0');
+        document.getElementById('endHour').value = String(Math.min(nextH + 1, 22)).padStart(2, '0');
+        document.getElementById('endMin').value = String(nextM).padStart(2, '0');
+      }
+
+      function disablePastHours() {
+        if (!selectedDate) return;
+        var isToday = (selectedDate === getTodayStr());
+        var now = new Date();
+        var curH = now.getHours();
+        var curM = now.getMinutes();
+        ['startHour', 'endHour'].forEach(function (id) {
+          var sel = document.getElementById(id);
+          Array.from(sel.options).forEach(function (opt) {
+            var h = parseInt(opt.value);
+            opt.disabled = isToday && (h < curH || (h === curH && curM >= 30));
+          });
+          if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].disabled) {
+            for (var i = 0; i < sel.options.length; i++) {
+              if (!sel.options[i].disabled) { sel.value = sel.options[i].value; break; }
+            }
+          }
+        });
+        ['startHour:startMin', 'endHour:endMin'].forEach(function (pair) {
+          var p = pair.split(':');
+          var hSel = document.getElementById(p[0]);
+          var mSel = document.getElementById(p[1]);
+          var selH = parseInt(hSel.value);
+          Array.from(mSel.options).forEach(function (opt) {
+            opt.disabled = isToday && selH === curH && parseInt(opt.value) <= curM;
+          });
+          if (mSel.options[mSel.selectedIndex] && mSel.options[mSel.selectedIndex].disabled) {
+            mSel.value = '30';
+          }
+        });
+      }
+
+      function syncHiddenFields() {
+        if (!selectedDate) return;
+        var sh = document.getElementById('startHour').value;
+        var sm = document.getElementById('startMin').value;
+        var eh = document.getElementById('endHour').value;
+        var em = document.getElementById('endMin').value;
+        document.getElementById('startTime').value = selectedDate + 'T' + sh + ':' + sm;
+        document.getElementById('endTime').value = selectedDate + 'T' + eh + ':' + em;
+        updateSummary();
+      }
+
+      function updateSummary() {
+        var summary = document.getElementById('bookingSummary');
+        if (!selectedDate) { summary.classList.remove('visible'); return; }
+        var sh = document.getElementById('startHour').value;
+        var sm = document.getElementById('startMin').value;
+        var eh = document.getElementById('endHour').value;
+        var em = document.getElementById('endMin').value;
+        var startDT = new Date(selectedDate + 'T' + sh + ':' + sm);
+        var endDT = new Date(selectedDate + 'T' + eh + ':' + em);
+        var diffMs = endDT - startDT;
+        if (diffMs <= 0) { summary.classList.remove('visible'); return; }
+        var diffH = Math.floor(diffMs / 3600000);
+        var diffM = Math.floor((diffMs % 3600000) / 60000);
+        var durStr = '';
+        if (diffH > 0) durStr += diffH + '시간';
+        if (diffM > 0) durStr += (durStr ? ' ' : '') + diffM + '분';
+        var dateObj = new Date(selectedDate);
+        var dateLabel = (dateObj.getMonth() + 1) + '월 ' + dateObj.getDate() + '일';
+        document.getElementById('summaryText').textContent = dateLabel + '  ' + sh + ':' + sm + ' ~ ' + eh + ':' + em;
+        document.getElementById('durationText').textContent = durStr;
+        summary.classList.add('visible');
+      }
+
+      flatpickr('#datePicker', {
+        locale: 'ko',
+        dateFormat: 'Y-m-d',
+        minDate: 'today',
+        disableMobile: true,
+        onChange: function (selectedDates, dateStr) {
+          selectedDate = dateStr;
+          disablePastHours();
+          syncHiddenFields();
+        }
+      });
+
+      ['startHour', 'startMin', 'endHour', 'endMin'].forEach(function (id) {
+        document.getElementById(id).addEventListener('change', function () {
+          if (id === 'startHour' || id === 'endHour') disablePastHours();
+          syncHiddenFields();
+        });
+      });
+
+      function syncStepper() {
+        var input = document.getElementById('attendeesInput');
+        currentAttendees = parseInt(input.value) || 1;
+        document.getElementById('decreaseBtn').disabled = (currentAttendees <= 1);
+        document.getElementById('increaseBtn').disabled = (currentAttendees >= maxCapacity);
+      }
+
+      function changeAttendees(delta) {
+        var next = currentAttendees + delta;
+        if (next < 1 || next > maxCapacity) return;
+        currentAttendees = next;
+        document.getElementById('attendeesInput').value = currentAttendees;
+        syncStepper();
+      }
+
+      document.getElementById('attendeesInput').addEventListener('input', function () {
+        var val = parseInt(this.value);
+        if (isNaN(val) || val < 1) val = 1;
+        if (val > maxCapacity) val = maxCapacity;
+        this.value = val;
+        currentAttendees = val;
+        syncStepper();
+      });
+
+      document.getElementById('roomSelect').addEventListener('change', function () {
+        document.getElementById('roomIdHidden').value = this.value;
+        var opt = this.options[this.selectedIndex];
+        if (!opt.value) return;
+        var cap = parseInt(opt.getAttribute('data-capacity')) || 999;
+        maxCapacity = cap;
+        var hint = document.getElementById('capacityHint');
+        hint.textContent = cap < 999 ? '이 회의실 최대 ' + cap + '명' : '';
+        if (currentAttendees > maxCapacity) {
+          currentAttendees = maxCapacity;
+          document.getElementById('attendeesInput').value = currentAttendees;
+        }
+        syncStepper();
+      });
+
+      document.getElementById('reservationForm').addEventListener('submit', function (e) {
+        syncHiddenFields();
+        if (!selectedDate) { e.preventDefault(); alert('날짜를 선택해주세요.'); return; }
+        var attendees = parseInt(document.getElementById('attendeesInput').value);
+        if (!attendees || attendees < 1) { e.preventDefault(); alert('참석 인원을 입력해주세요.'); return; }
+        var st = document.getElementById('startTime').value;
+        var et = document.getElementById('endTime').value;
+        if (new Date(st) >= new Date(et)) { e.preventDefault(); alert('종료 시간은 시작 시간보다 이후여야 합니다.'); return; }
+        if (new Date(st) <= new Date()) { e.preventDefault(); alert('과거 시간으로는 예약할 수 없습니다.'); return; }
+      });
+
+      initHourSelects();
+      syncStepper();
+      var initRoom = document.getElementById('roomSelect');
+      if (initRoom.value) { initRoom.dispatchEvent(new Event('change')); }
+    </script>
+
+  </div>
+</body>
+
+</html>

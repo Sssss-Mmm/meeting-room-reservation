@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html th:replace="~{layout/base :: layout(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+  <div th:fragment="content">
+    <div class="auth-wrapper-lg">
+
+      <div class="auth-header">
+        <div class="auth-logo-mark">
+          <i class="bi bi-person-plus" style="font-size:1.6rem;color:#fff;"></i>
+        </div>
+        <h1 class="auth-title">계정 만들기</h1>
+        <p class="auth-subtitle">정보를 입력하여 새 계정을 생성하세요</p>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <h2>회원가입</h2>
+          <p>모든 항목을 정확히 입력해주세요</p>
+        </div>
+        <div class="card-bottom">
+          <form th:action="@{/auth/signup}" th:object="${signupRequest}" method="post">
+
+            <div class="form-row">
+              <div class="flex-1">
+                <label class="form-label">아이디</label>
+                <input type="text" th:field="*{username}"
+                       class="form-control"
+                       th:classappend="${#fields.hasErrors('username')} ? ' is-invalid'"
+                       placeholder="사용할 아이디">
+                <div class="invalid-feedback" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+              </div>
+              <div class="flex-1">
+                <label class="form-label">이름</label>
+                <input type="text" th:field="*{name}"
+                       class="form-control"
+                       th:classappend="${#fields.hasErrors('name')} ? ' is-invalid'"
+                       placeholder="실명">
+                <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">비밀번호</label>
+              <input type="password" th:field="*{password}"
+                     class="form-control"
+                     th:classappend="${#fields.hasErrors('password')} ? ' is-invalid'"
+                     placeholder="8자 이상 권장">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">이메일</label>
+              <input type="email" th:field="*{email}"
+                     class="form-control"
+                     th:classappend="${#fields.hasErrors('email')} ? ' is-invalid'"
+                     placeholder="example@company.com">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">
+                부서 <span class="optional-label">(선택)</span>
+              </label>
+              <input type="text" th:field="*{department}"
+                     class="form-control"
+                     placeholder="예: 개발팀, 마케팅팀">
+            </div>
+
+            <button class="btn-primary w-100 justify-center" type="submit"
+                    style="font-size:0.95rem;padding:0.8rem;">
+              <i class="bi bi-person-check"></i> 가입하기
+            </button>
+          </form>
+
+          <hr class="divider">
+
+          <div class="text-center">
+            <span class="color-sub" style="font-size:0.875rem;">이미 계정이 있으신가요?</span>
+            <a th:href="@{/auth/login}" class="auth-link">로그인 →</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

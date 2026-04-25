@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html th:replace="~{layout/base :: layout(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+
+  <!-- 캘린더 헤더 -->
+  <div class="calendar-nav">
+    <div class="calendar-nav-left">
+      <a th:href="@{/reservations(year=${calendar.prevYear}, month=${calendar.prevMonth})}" class="nav-btn">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      <a th:href="@{/reservations(year=${calendar.nextYear}, month=${calendar.nextMonth})}" class="nav-btn">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+      <a th:href="@{/reservations}" class="today-btn">오늘</a>
+      <h2 class="calendar-month">
+        <span th:text="${calendar.currentYear}">2025</span>년
+        <span th:text="${calendar.currentMonthName}">4월</span>
+      </h2>
+    </div>
+  </div>
+
+  <div class="calendar-layout">
+
+    <!-- ══ 왼쪽: 캘린더 ══ -->
+    <div class="d-flex flex-col gap-1">
+
+      <div th:if="${param.success}" class="alert-success mb-2">
+        <i class="bi bi-check-circle-fill"></i>
+        예약이 신청되었습니다. 관리자 승인 후 확정됩니다.
+      </div>
+
+      <div class="card" style="overflow:hidden;">
+        <!-- 요일 헤더 -->
+        <div class="calendar-grid-header">
+          <div th:each="day : ${ {'일','월','화','수','목','금','토'} }"
+               class="day-header"
+               th:text="${day}">일</div>
+        </div>
+
+        <!-- 날짜 셀 -->
+        <div class="calendar-grid">
+
+          <!-- 앞 빈칸 -->
+          <div th:each="i : ${#numbers.sequence(1, calendar.firstDayOfWeek)}"
+               class="calendar-cell-empty">
+          </div>
+
+          <!-- 실제 날짜 -->
+          <th:block th:each="day : ${#numbers.sequence(1, calendar.daysInMonth)}">
+            <div th:with="isToday=${calendar.isCurrentMonth and day == calendar.todayDay},
+                         hasRes=${calendar.calendarMap != null and calendar.calendarMap.containsKey(day)},
+                         dayRes=${calendar.calendarMap != null ? calendar.calendarMap.get(day) : null}"
+                 th:class="${isToday ? 'calendar-cell calendar-cell-today' : 'calendar-cell'}">
+
+              <div th:class="${isToday ? 'day-num day-num-today' : 'day-num'}"
+                   th:text="${day}">1</div>
+
+              <div th:if="${hasRes}" class="d-flex flex-col mt-1" style="gap:2px;">
+                <th:block th:each="res, iterStat : ${dayRes}">
+                  <th:block th:if="${iterStat.index < 2}">
+                    <a th:href="@{/reservations/{id}(id=${res.id})}"
+                       th:class="${'res-label ' +
+                                 (res.status.name() == 'CONFIRMED' ? 'res-label-confirmed' :
+                                  res.status.name() == 'PENDING'   ? 'res-label-pending'   :
+                                  res.status.name() == 'REJECTED'  ? 'res-label-rejected'  :
+                                                                     'res-label-cancelled')}"
+                       th:text="${res.room.name}">회의실</a>
+                  </th:block>
+                </th:block>
+                <span th:if="${dayRes != null and #lists.size(dayRes) > 2}"
+                      class="res-label-more"
+                      th:text="'+ ' + (${#lists.size(dayRes)} - 2) + '개 더'"></span>
+              </div>
+
+            </div>
+          </th:block>
+
+          <!-- 뒤 빈칸 -->
+          <th:block th:with="totalCells=${calendar.firstDayOfWeek + calendar.daysInMonth},
+                             remain=${totalCells % 7 == 0 ? 0 : 7 - (totalCells % 7)}">
+            <div th:each="i : ${#numbers.sequence(1, remain == 0 ? 0 : remain)}"
+                 class="calendar-cell-empty">
+            </div>
+          </th:block>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 오른쪽 패널 ══ -->
+    <div class="d-flex flex-col gap-1">
+
+      <!-- 활동 통계 -->
+      <div class="card card-body-sm">
+        <div style="font-size:0.85rem;font-weight:700;margin-bottom:1rem;">활동 현황</div>
+        <div class="d-flex flex-col gap-sm">
+          <div class="sidebar-stat sidebar-stat-pending">
+            <div>
+              <div class="sidebar-stat-title color-yellow">승인 대기</div>
+              <div class="sidebar-stat-sub color-yellow-sub">관리자 검토 중</div>
+            </div>
+            <div class="sidebar-stat-count color-yellow" th:text="${statusCount['PENDING'] ?: 0}">0</div>
+          </div>
+          <div class="sidebar-stat sidebar-stat-confirmed">
+            <div>
+              <div class="sidebar-stat-title color-green">확정됨</div>
+              <div class="sidebar-stat-sub color-green-sub">승인 완료</div>
+            </div>
+            <div class="sidebar-stat-count color-green" th:text="${statusCount['CONFIRMED'] ?: 0}">0</div>
+          </div>
+          <div class="sidebar-stat sidebar-stat-rejected">
+            <div>
+              <div class="sidebar-stat-title color-red">반려됨</div>
+              <div class="sidebar-stat-sub color-red-sub">사유 확인 필요</div>
+            </div>
+            <div class="sidebar-stat-count color-red" th:text="${statusCount['REJECTED'] ?: 0}">0</div>
+          </div>
+          <div class="sidebar-stat sidebar-stat-cancelled">
+            <div>
+              <div class="sidebar-stat-title color-gray">취소됨</div>
+              <div class="sidebar-stat-sub color-gray-sub">취소 처리 완료</div>
+            </div>
+            <div class="sidebar-stat-count color-gray-sub" th:text="${statusCount['CANCELLED'] ?: 0}">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오늘 일정 -->
+      <div class="card card-body-sm">
+        <div class="d-flex align-center justify-between mb-2">
+          <div style="font-size:0.85rem;font-weight:700;">오늘의 일정</div>
+          <i class="bi bi-arrow-up-right-square color-light" style="font-size:0.9rem;cursor:pointer;"></i>
+        </div>
+
+        <div th:if="${not #lists.isEmpty(todayReservations)}" class="d-flex flex-col gap-sm">
+          <div th:each="res : ${todayReservations}"
+               class="card" style="padding:0.65rem 0.75rem;">
+            <div class="d-flex align-center justify-between mb-1">
+              <span style="font-size:0.75rem;font-weight:600;"
+                    th:text="${res.room.name}">회의실</span>
+              <span th:if="${res.status.name() == 'CONFIRMED'}" class="badge badge-confirmed" style="font-size:0.65rem;">확정</span>
+              <span th:if="${res.status.name() == 'PENDING'}"   class="badge badge-pending"   style="font-size:0.65rem;">대기</span>
+            </div>
+            <div class="color-sub" style="font-size:0.78rem;" th:text="${res.title}">제목</div>
+            <div class="color-light text-mono mt-1" style="font-size:0.72rem;"
+                 th:text="${#temporals.format(res.startTime,'HH:mm')} + ' ~ ' + ${#temporals.format(res.endTime,'HH:mm')}">시간</div>
+          </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(todayReservations)}" class="empty-state" style="padding:1.5rem 0;">
+          <i class="bi bi-calendar-x" style="font-size:1.5rem;"></i>
+          <p>오늘 일정이 없습니다</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

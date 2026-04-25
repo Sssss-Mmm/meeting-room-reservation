@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+  th:fragment="layout(content)">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Everspin Meeting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link th:href="@{/css/main.css}" rel="stylesheet">
+</head>
+
+<body>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <a class="sidebar-logo" th:href="@{/reservations}">
+      <div class="sidebar-logo-icon"><i class="bi bi-building"></i></div>
+      <span><span class="accent">Everspin</span>&nbsp;Meeting</span>
+    </a>
+
+    <div class="nav-section-label">메뉴</div>
+
+    <a class="nav-item" th:href="@{/reservations}">
+      <i class="bi bi-calendar3"></i> 내 예약
+    </a>
+
+    <a class="nav-item" th:href="@{/rooms}">
+      <i class="bi bi-grid-3x3-gap"></i> 회의실 조회
+    </a>
+
+    <a class="nav-item" sec:authorize="hasRole('ADMIN')" th:href="@{/admin/dashboard}">
+      <i class="bi bi-speedometer2"></i> 관리자
+    </a>
+
+    <div class="sidebar-footer">
+      <!-- 로그인 상태 -->
+      <div sec:authorize="isAuthenticated()">
+        <div class="user-chip mb-2">
+          <div class="user-avatar">
+            <span th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">U</span>
+          </div>
+          <div style="overflow:hidden;">
+            <div class="user-name" th:text="${#authentication.principal.name}">사용자</div>
+            <div class="user-role">멤버</div>
+          </div>
+        </div>
+        <form th:action="@{/auth/logout}" method="post" class="logout-form">
+          <button type="submit" class="nav-item" style="color:#EF4444;">
+            <i class="bi bi-box-arrow-right"></i> 로그아웃
+          </button>
+        </form>
+      </div>
+      <!-- 비로그인 -->
+      <div sec:authorize="!isAuthenticated()">
+        <a th:href="@{/auth/login}" class="nav-item"><i class="bi bi-person"></i> 로그인</a>
+        <a th:href="@{/auth/signup}" class="nav-item"><i class="bi bi-person-plus"></i> 회원가입</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main-wrapper">
+    <header class="main-topbar">
+      <span class="topbar-title" id="topbar-page-title">Everspin Meeting</span>
+      <div class="topbar-right">
+
+        <!-- 알림 (로그인 시) -->
+        <div class="notif-wrapper" sec:authorize="isAuthenticated()" id="notifWrapper">
+          <button class="topbar-icon-btn" id="notifBtn" onclick="toggleNotif(event)" title="알림">
+            <i class="bi bi-bell"></i>
+            <span class="notif-badge" id="notifBadge" style="display:none;"></span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-header">
+              <span>알림</span>
+              <button class="notif-read-all" onclick="markAllRead()">모두 읽음</button>
+            </div>
+            <div class="notif-list" id="notifList">
+              <div class="notif-empty"><i class="bi bi-bell-slash"></i>
+                <p>알림이 없습니다</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 알림 버튼 (비로그인 시) -->
+        <div class="topbar-icon-btn" sec:authorize="!isAuthenticated()">
+          <i class="bi bi-bell"></i>
+        </div>
+
+        <div class="topbar-avatar" sec:authorize="isAuthenticated()">
+          <span th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">U</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-content" th:replace="${content}">
+      <!-- content injected -->
+    </div>
+  </div>
+
+  <script>
+    // 활성 nav 표시
+    const p = window.location.pathname;
+    document.querySelectorAll('.nav-item[href]').forEach(el => {
+      if (p.startsWith(el.getAttribute('href'))) el.classList.add('active');
+    });
+
+    // ── 알림 ──
+    function getCsrfToken() {
+      return document.cookie.split(';').map(c => c.trim())
+        .find(c => c.startsWith('XSRF-TOKEN='))?.split('=')[1] ?? '';
+    }
+
+    function formatTime(iso) {
+      const d = new Date(iso);
+      const now = new Date();
+      const diff = Math.floor((now - d) / 1000);
+      if (diff < 60) return '방금 전';
+      if (diff < 3600) return Math.floor(diff / 60) + '분 전';
+      if (diff < 86400) return Math.floor(diff / 3600) + '시간 전';
+      return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    }
+
+    function renderNotifs(items) {
+      const list = document.getElementById('notifList');
+      const badge = document.getElementById('notifBadge');
+      if (!items || items.length === 0) {
+        list.innerHTML = '<div class="notif-empty"><i class="bi bi-bell-slash"></i><p>알림이 없습니다</p></div>';
+        badge.style.display = 'none';
+        return;
+      }
+      badge.textContent = items.length > 9 ? '9+' : items.length;
+      badge.style.display = 'flex';
+      list.innerHTML = items.map(n => `
+        <div class="notif-item" id="notif-${n.id}" onclick="markRead(${n.id})">
+          <p class="notif-msg">${n.message}</p>
+          <span class="notif-time">${formatTime(n.createdAt)}</span>
+        </div>`).join('');
+    }
+
+    function loadNotifs() {
+      fetch('/api/notifications', { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : [])
+        .then(renderNotifs)
+        .catch(() => { });
+    }
+
+    function markRead(id) {
+      fetch('/api/notifications/' + id + '/read', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-XSRF-TOKEN': getCsrfToken() }
+      }).then(() => {
+        const el = document.getElementById('notif-' + id);
+        if (el) el.remove();
+        const remaining = document.querySelectorAll('#notifList .notif-item').length;
+        if (remaining === 0) renderNotifs([]);
+        else {
+          const badge = document.getElementById('notifBadge');
+          badge.textContent = remaining > 9 ? '9+' : remaining;
+        }
+      }).catch(() => { });
+    }
+
+    function markAllRead() {
+      fetch('/api/notifications/read-all', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-XSRF-TOKEN': getCsrfToken() }
+      }).then(() => renderNotifs([])).catch(() => { });
+    }
+
+    function toggleNotif(e) {
+      e.stopPropagation();
+      const dd = document.getElementById('notifDropdown');
+      const open = dd.classList.toggle('open');
+      if (open) loadNotifs();
+    }
+
+    document.addEventListener('click', function (e) {
+      const wrapper = document.getElementById('notifWrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        document.getElementById('notifDropdown')?.classList.remove('open');
+      }
+    });
+
+    // 30초마다 뱃지 갱신 (드롭다운 닫혀 있을 때)
+    if (document.getElementById('notifWrapper')) {
+      loadNotifs();
+      setInterval(function () {
+        if (!document.getElementById('notifDropdown').classList.contains('open')) {
+          loadNotifs();
+        }
+      }, 30000);
+    }
+  </script>
+</body>
+
+</html>
