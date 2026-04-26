@@ -16,6 +16,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
+    // 대상 사용자에게 알림 메시지 생성 및 저장
     @Transactional
     public void create(User user, String message) {
         notificationRepository.save(Notification.builder()
@@ -24,14 +25,17 @@ public class NotificationService {
                 .build());
     }
 
+    // 해당 사용자의 읽지 않은 알림 목록을 최신순으로 반환
     public List<Notification> findUnread(Long userId) {
         return notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId);
     }
 
+    // 해당 사용자의 읽지 않은 알림 개수 반환 (헤더 배지 카운트용)
     public long countUnread(Long userId) {
         return notificationRepository.countByUserIdAndReadFalse(userId);
     }
 
+    // 특정 알림을 읽음 처리 (본인 알림인지 확인 후 처리)
     @Transactional
     public void markRead(Long notificationId, Long userId) {
         notificationRepository.findById(notificationId).ifPresent(n -> {
@@ -41,6 +45,7 @@ public class NotificationService {
         });
     }
 
+    // 해당 사용자의 모든 미읽음 알림을 일괄 읽음 처리
     @Transactional
     public void markAllRead(Long userId) {
         notificationRepository.markAllReadByUserId(userId);

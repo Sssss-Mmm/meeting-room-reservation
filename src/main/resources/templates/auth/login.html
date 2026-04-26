@@ -2,8 +2,10 @@
 <html th:replace="~{layout/base :: layout(~{::content})}" xmlns:th="http://www.thymeleaf.org">
 <body>
   <div th:fragment="content">
+    <!-- 로그인 페이지 중앙 정렬 래퍼 -->
     <div class="auth-wrapper">
 
+      <!-- 상단 로고 및 타이틀 -->
       <div class="auth-header">
         <div class="auth-logo-mark">
           <i class="bi bi-building" style="font-size:1.6rem;color:#fff;"></i>
@@ -12,6 +14,7 @@
         <p class="auth-subtitle">계정에 로그인하여 회의실을 예약하세요</p>
       </div>
 
+      <!-- 상태 알림 (로그인 실패 / 로그아웃 / 회원가입 완료) -->
       <div th:if="${param.error}" class="alert-danger mb-2">
         <i class="bi bi-exclamation-circle-fill"></i>
         아이디 또는 비밀번호가 올바르지 않습니다.
@@ -25,12 +28,14 @@
         회원가입이 완료되었습니다. 로그인해주세요.
       </div>
 
+      <!-- 로그인 폼 카드 -->
       <div class="card">
         <div class="card-top">
           <h2>로그인</h2>
           <p>Welcome back!</p>
         </div>
         <div class="card-bottom">
+          <!-- 아이디/비밀번호 입력 폼 -->
           <form th:action="@{/auth/login-process}" method="post">
             <div class="mb-2">
               <label class="form-label" for="username">아이디</label>
@@ -53,6 +58,7 @@
 
           <hr class="divider">
 
+          <!-- 회원가입 페이지 이동 링크 -->
           <div class="text-center">
             <span class="color-sub" style="font-size:0.875rem;">계정이 없으신가요?</span>
             <a th:href="@{/auth/signup}" class="auth-link">회원가입 →</a>

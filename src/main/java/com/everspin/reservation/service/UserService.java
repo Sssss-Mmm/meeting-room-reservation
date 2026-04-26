@@ -17,14 +17,17 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // 회원가입 시 username 중복 여부 확인
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
 
+    // 회원가입 시 email 중복 여부 확인
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
+    // 회원가입 처리: 비밀번호 인코딩 후 ROLE_USER로 저장
     @Transactional
     public void register(SignupRequest request) {
         User user = User.builder()

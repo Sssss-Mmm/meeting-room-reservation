@@ -202,7 +202,7 @@
             <input type="hidden" id="endTime" name="endTime" th:field="*{endTime}">
             <input type="hidden" id="roomIdHidden" name="roomId" th:value="${reservationRequest.roomId}">
 
-            <!-- ① 회의실 선택 -->
+            <!-- 회의실 선택 -->
             <div class="mb-3">
               <label class="form-label">회의실 선택</label>
               <select id="roomSelect" class="form-select"
@@ -216,7 +216,7 @@
               <div class="invalid-feedback" th:if="${#fields.hasErrors('roomId')}" th:errors="*{roomId}"></div>
             </div>
 
-            <!-- ② 회의 제목 -->
+            <!-- 회의 제목 -->
             <div class="mb-3">
               <label class="form-label">회의 제목</label>
               <input type="text" th:field="*{title}" class="form-control"
@@ -224,7 +224,7 @@
               <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
             </div>
 
-            <!-- ③ 날짜 선택 -->
+            <!-- 날짜 선택 -->
             <div class="mb-2">
               <label class="form-label">회의 날짜</label>
               <div class="date-input-wrapper">
@@ -233,7 +233,7 @@
               </div>
             </div>
 
-            <!-- ④ 시작·종료 시간 -->
+            <!-- 시작·종료 시간 -->
             <div class="mb-3">
               <div class="time-row">
                 <div class="time-col">
@@ -278,7 +278,7 @@
               </div>
             </div>
 
-            <!-- ⑤ 참석 인원수 -->
+            <!-- 참석 인원수 -->
             <div class="mb-3">
               <label class="form-label">참석 인원수</label>
               <div class="d-flex align-center gap-1">
@@ -297,7 +297,7 @@
               <div class="invalid-feedback" th:if="${#fields.hasErrors('attendees')}" th:errors="*{attendees}"></div>
             </div>
 
-            <!-- ⑥ 설명 -->
+            <!-- 설명 -->
             <div class="mb-3">
               <label class="form-label">
                 예약 목적 및 설명 <span class="optional-label">(선택)</span>
@@ -329,86 +329,91 @@
       var currentAttendees = 1;
       var maxCapacity = 999;
 
+      // 오늘 날짜를 'YYYY-MM-DD' 형식 문자열로 반환
       function getTodayStr() {
-        var t = new Date();
-        return t.getFullYear() + '-' +
-          String(t.getMonth() + 1).padStart(2, '0') + '-' +
-          String(t.getDate()).padStart(2, '0');
+        var today = new Date();
+        return today.getFullYear() + '-' +
+          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+          String(today.getDate()).padStart(2, '0');
       }
 
+      // 시작·종료 시간 셀렉트를 07~22시 옵션으로 채우고, 현재 시각 기준 가장 가까운 30분 단위로 기본값 설정
       function initHourSelects() {
         ['startHour', 'endHour'].forEach(function (id) {
-          var sel = document.getElementById(id);
-          for (var h = 7; h <= 22; h++) {
-            var opt = document.createElement('option');
-            opt.value = String(h).padStart(2, '0');
-            opt.textContent = String(h).padStart(2, '0') + '시';
-            sel.appendChild(opt);
+          var selectElement = document.getElementById(id);
+          for (var hour = 7; hour <= 22; hour++) {
+            var optionElement = document.createElement('option');
+            optionElement.value = String(hour).padStart(2, '0');
+            optionElement.textContent = String(hour).padStart(2, '0') + '시';
+            selectElement.appendChild(optionElement);
           }
         });
         var now = new Date();
-        var nextH = now.getHours();
-        var nextM = now.getMinutes() < 30 ? 30 : 0;
-        if (nextM === 0) nextH += 1;
-        nextH = Math.min(Math.max(nextH, 7), 21);
-        document.getElementById('startHour').value = String(nextH).padStart(2, '0');
-        document.getElementById('startMin').value = String(nextM).padStart(2, '0');
-        document.getElementById('endHour').value = String(Math.min(nextH + 1, 22)).padStart(2, '0');
-        document.getElementById('endMin').value = String(nextM).padStart(2, '0');
+        var nextHour = now.getHours();
+        var nextMin = now.getMinutes() < 30 ? 30 : 0;
+        if (nextMin === 0) nextHour += 1;
+        nextHour = Math.min(Math.max(nextHour, 7), 21);
+        document.getElementById('startHour').value = String(nextHour).padStart(2, '0');
+        document.getElementById('startMin').value = String(nextMin).padStart(2, '0');
+        document.getElementById('endHour').value = String(Math.min(nextHour + 1, 22)).padStart(2, '0');
+        document.getElementById('endMin').value = String(nextMin).padStart(2, '0');
       }
 
+      // 오늘 날짜가 선택된 경우 이미 지난 시간 옵션을 disabled 처리
       function disablePastHours() {
         if (!selectedDate) return;
         var isToday = (selectedDate === getTodayStr());
         var now = new Date();
-        var curH = now.getHours();
-        var curM = now.getMinutes();
+        var curHour = now.getHours();
+        var curMin = now.getMinutes();
         ['startHour', 'endHour'].forEach(function (id) {
-          var sel = document.getElementById(id);
-          Array.from(sel.options).forEach(function (opt) {
-            var h = parseInt(opt.value);
-            opt.disabled = isToday && (h < curH || (h === curH && curM >= 30));
+          var selectElement = document.getElementById(id);
+          Array.from(selectElement.options).forEach(function (optionElement) {
+            var hour = parseInt(optionElement.value);
+            optionElement.disabled = isToday && (hour < curHour || (hour === curHour && curMin >= 30));
           });
-          if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].disabled) {
-            for (var i = 0; i < sel.options.length; i++) {
-              if (!sel.options[i].disabled) { sel.value = sel.options[i].value; break; }
+          if (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled) {
+            for (var i = 0; i < selectElement.options.length; i++) {
+              if (!selectElement.options[i].disabled) { selectElement.value = selectElement.options[i].value; break; }
             }
           }
         });
         ['startHour:startMin', 'endHour:endMin'].forEach(function (pair) {
-          var p = pair.split(':');
-          var hSel = document.getElementById(p[0]);
-          var mSel = document.getElementById(p[1]);
-          var selH = parseInt(hSel.value);
-          Array.from(mSel.options).forEach(function (opt) {
-            opt.disabled = isToday && selH === curH && parseInt(opt.value) <= curM;
+          var parts = pair.split(':');
+          var hSelectElement = document.getElementById(parts[0]);
+          var mSelectElement = document.getElementById(parts[1]);
+          var selHour = parseInt(hSelectElement.value);
+          Array.from(mSelectElement.options).forEach(function (optionElement) {
+            optionElement.disabled = isToday && selHour === curHour && parseInt(optionElement.value) <= curMin;
           });
-          if (mSel.options[mSel.selectedIndex] && mSel.options[mSel.selectedIndex].disabled) {
-            mSel.value = '30';
+          if (mSelectElement.options[mSelectElement.selectedIndex] && mSelectElement.options[mSelectElement.selectedIndex].disabled) {
+            mSelectElement.value = '30';
           }
         });
       }
 
+      // 선택한 날짜와 시간을 조합해 hidden input(startTime, endTime)에 ISO 형식으로 저장
       function syncHiddenFields() {
         if (!selectedDate) return;
-        var sh = document.getElementById('startHour').value;
-        var sm = document.getElementById('startMin').value;
-        var eh = document.getElementById('endHour').value;
-        var em = document.getElementById('endMin').value;
-        document.getElementById('startTime').value = selectedDate + 'T' + sh + ':' + sm;
-        document.getElementById('endTime').value = selectedDate + 'T' + eh + ':' + em;
+        var startHour = document.getElementById('startHour').value;
+        var startMin = document.getElementById('startMin').value;
+        var endHour = document.getElementById('endHour').value;
+        var endMin = document.getElementById('endMin').value;
+        document.getElementById('startTime').value = selectedDate + 'T' + startHour + ':' + startMin;
+        document.getElementById('endTime').value = selectedDate + 'T' + endHour + ':' + endMin;
         updateSummary();
       }
 
+      // 예약 시간 요약 박스를 갱신 (날짜·시간·소요 시간 표시, 종료가 시작보다 이전이면 숨김)
       function updateSummary() {
         var summary = document.getElementById('bookingSummary');
         if (!selectedDate) { summary.classList.remove('visible'); return; }
-        var sh = document.getElementById('startHour').value;
-        var sm = document.getElementById('startMin').value;
-        var eh = document.getElementById('endHour').value;
-        var em = document.getElementById('endMin').value;
-        var startDT = new Date(selectedDate + 'T' + sh + ':' + sm);
-        var endDT = new Date(selectedDate + 'T' + eh + ':' + em);
+        var startHour = document.getElementById('startHour').value;
+        var startMin = document.getElementById('startMin').value;
+        var endHour = document.getElementById('endHour').value;
+        var endMin = document.getElementById('endMin').value;
+        var startDT = new Date(selectedDate + 'T' + startHour + ':' + startMin);
+        var endDT = new Date(selectedDate + 'T' + endHour + ':' + endMin);
         var diffMs = endDT - startDT;
         if (diffMs <= 0) { summary.classList.remove('visible'); return; }
         var diffH = Math.floor(diffMs / 3600000);
@@ -423,6 +428,7 @@
         summary.classList.add('visible');
       }
 
+      // Flatpickr 날짜 선택기 초기화 (오늘 이후만 선택 가능, 날짜 변경 시 시간 재검증)
       flatpickr('#datePicker', {
         locale: 'ko',
         dateFormat: 'Y-m-d',
@@ -435,6 +441,7 @@
         }
       });
 
+      // 시간 셀렉트 변경 시 hidden input 동기화
       ['startHour', 'startMin', 'endHour', 'endMin'].forEach(function (id) {
         document.getElementById(id).addEventListener('change', function () {
           if (id === 'startHour' || id === 'endHour') disablePastHours();
@@ -442,6 +449,7 @@
         });
       });
 
+      // 인원수 스테퍼의 +/- 버튼 활성 여부를 현재 값·최대 정원 기준으로 동기화
       function syncStepper() {
         var input = document.getElementById('attendeesInput');
         currentAttendees = parseInt(input.value) || 1;
@@ -449,6 +457,7 @@
         document.getElementById('increaseBtn').disabled = (currentAttendees >= maxCapacity);
       }
 
+      // 인원수 +/- 버튼 클릭 시 범위 내에서 값 변경
       function changeAttendees(delta) {
         var next = currentAttendees + delta;
         if (next < 1 || next > maxCapacity) return;
@@ -457,6 +466,7 @@
         syncStepper();
       }
 
+      // 인원수 직접 입력 시 1 ~ 최대 정원 범위로 클램핑
       document.getElementById('attendeesInput').addEventListener('input', function () {
         var val = parseInt(this.value);
         if (isNaN(val) || val < 1) val = 1;
@@ -466,6 +476,7 @@
         syncStepper();
       });
 
+      // 회의실 변경 시 hidden roomId 업데이트 및 정원 힌트 표시
       document.getElementById('roomSelect').addEventListener('change', function () {
         document.getElementById('roomIdHidden').value = this.value;
         var opt = this.options[this.selectedIndex];
@@ -481,19 +492,21 @@
         syncStepper();
       });
 
+      // 폼 제출 전 클라이언트 유효성 검사 (날짜 미선택, 시간 역전, 과거 시간 차단)
       document.getElementById('reservationForm').addEventListener('submit', function (e) {
         syncHiddenFields();
         if (!selectedDate) { e.preventDefault(); alert('날짜를 선택해주세요.'); return; }
         var attendees = parseInt(document.getElementById('attendeesInput').value);
         if (!attendees || attendees < 1) { e.preventDefault(); alert('참석 인원을 입력해주세요.'); return; }
-        var st = document.getElementById('startTime').value;
-        var et = document.getElementById('endTime').value;
-        if (new Date(st) >= new Date(et)) { e.preventDefault(); alert('종료 시간은 시작 시간보다 이후여야 합니다.'); return; }
-        if (new Date(st) <= new Date()) { e.preventDefault(); alert('과거 시간으로는 예약할 수 없습니다.'); return; }
+        var startTime = document.getElementById('startTime').value;
+        var endTime = document.getElementById('endTime').value;
+        if (new Date(startTime) >= new Date(endTime)) { e.preventDefault(); alert('종료 시간은 시작 시간보다 이후여야 합니다.'); return; }
+        if (new Date(startTime) <= new Date()) { e.preventDefault(); alert('과거 시간으로는 예약할 수 없습니다.'); return; }
       });
 
       initHourSelects();
       syncStepper();
+      // 회의실이 이미 선택된 상태(재진입 시)라면 정원 힌트 즉시 업데이트
       var initRoom = document.getElementById('roomSelect');
       if (initRoom.value) { initRoom.dispatchEvent(new Event('change')); }
     </script>

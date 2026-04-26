@@ -5,6 +5,7 @@
 <body>
   <div th:fragment="content">
 
+    <!-- 페이지 헤더: 제목 -->
     <div class="page-header">
       <div>
         <h1 class="page-title">
@@ -14,9 +15,12 @@
       </div>
     </div>
 
+    <!-- 회의실 카드 그리드 (3열 반응형) -->
     <div class="room-grid" th:if="${not rooms.isEmpty()}">
+      <!-- 회의실 카드 1개 -->
       <div th:each="room : ${rooms.content}">
         <div class="card room-card" style="padding:1.5rem;">
+          <!-- 카드 상단: 아이콘 + 회의실명 + 위치 + 정원 + 설명 -->
           <div>
             <div class="room-card-header">
               <div class="room-icon">
@@ -37,6 +41,7 @@
               설명</p>
           </div>
 
+          <!-- 카드 하단: 예약 버튼 (비로그인 시 로그인 유도 문구) -->
           <div class="room-card-footer">
             <a th:href="@{/reservations/new(roomId=${room.id})}" sec:authorize="isAuthenticated()"
               class="btn-secondary w-100 justify-center" style="padding:0.55rem;">
@@ -50,7 +55,7 @@
       </div>
     </div>
 
-    <!-- Pagination -->
+    <!-- 페이지네이션 (총 페이지가 2 이상일 때만 표시) -->
     <div class="pagination" th:if="${rooms.totalPages > 1}">
       <a th:href="@{/rooms(page=${rooms.number - 1})}"
         th:class="${rooms.hasPrevious()} ? 'page-btn' : 'page-btn disabled'">

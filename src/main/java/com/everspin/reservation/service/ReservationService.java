@@ -27,42 +27,45 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ReservationService {
 
-    private static final List<ReservationStatus> INACTIVE_STATUSES =
-            List.of(ReservationStatus.CANCELLED, ReservationStatus.REJECTED);
-
     private final ReservationRepository reservationRepository;
     private final RoomService roomService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
 
+    // 특정 사용자의 전체 예약 목록을 최신순으로 반환
     public List<Reservation> findByUserId(Long userId) {
         return reservationRepository.findByUserIdOrderByStartTimeDesc(userId);
     }
 
+    // ID로 예약 단건 조회 (없으면 예외)
     public Reservation findById(Long id) {
         return reservationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예약입니다."));
     }
 
+    // 관리자용: 승인 대기(PENDING) 예약 목록을 페이지 단위로 조회
     public Page<Reservation> findPendingReservations(int page) {
         return reservationRepository.findPendingWithDetails(
                 ReservationStatus.PENDING, PageRequest.of(page, 10));
     }
 
+    // 오늘 날짜의 활성 예약 전체 조회 (대시보드 오늘 예약 현황 표시용)
     public List<Reservation> findTodayReservations() {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
-        return reservationRepository.findTodayActiveWithDetails(startOfDay, endOfDay, INACTIVE_STATUSES);
+        return reservationRepository.findTodayActiveWithDetails(startOfDay, endOfDay);
     }
 
+    // 해당 월의 사용자 활성 예약을 일자(day)별로 그룹핑하여 반환 — 월별 달력 뷰 구성용
     public Map<Integer, List<Reservation>> findMonthlyCalendar(Long userId, int year, int month) {
         YearMonth ym = YearMonth.of(year, month);
         LocalDateTime start = ym.atDay(1).atStartOfDay();
         LocalDateTime end   = ym.atEndOfMonth().atTime(23, 59, 59);
-        return reservationRepository.findActiveByUserIdAndMonth(userId, start, end, INACTIVE_STATUSES).stream()
+        return reservationRepository.findActiveByUserIdAndMonth(userId, start, end).stream()
                 .collect(Collectors.groupingBy(r -> r.getStartTime().getDayOfMonth()));
     }
 
+    // 사용자의 상태별 예약 건수를 Map<상태명, 건수>로 반환 (대시보드 통계 카드용)
     public Map<String, Long> countByStatus(Long userId) {
         return reservationRepository.countGroupByStatus(userId).stream()
                 .collect(Collectors.toMap(
@@ -70,6 +73,7 @@ public class ReservationService {
                         row -> (Long) row[1]));
     }
 
+    // 예약 생성: 유효성 검증 → 비관적 락으로 중복 예약 방지 → 저장 → 예약자·관리자 알림 발송
     @Transactional
     public Reservation createReservation(User user, ReservationRequest request) {
         Room room = roomService.findById(request.getRoomId());
@@ -119,6 +123,7 @@ public class ReservationService {
         return saved;
     }
 
+    // 예약 취소: 본인 예약 여부 및 시작 전 예약인지 확인 후 취소 처리 및 알림 발송
     @Transactional
     public void cancelReservation(Long id, Long userId) {
         Reservation res = findById(id);
@@ -133,6 +138,7 @@ public class ReservationService {
                 String.format("[%s] '%s' 예약이 취소되었습니다.", res.getRoom().getName(), res.getTitle()));
     }
 
+    // 관리자: 예약 승인 처리 및 예약자에게 알림 발송
     @Transactional
     public void approveReservation(Long id) {
         Reservation res = findById(id);
@@ -141,6 +147,7 @@ public class ReservationService {
                 String.format("[%s] '%s' 예약이 승인되었습니다.", res.getRoom().getName(), res.getTitle()));
     }
 
+    // 관리자: 사유와 함께 예약 반려 처리 및 예약자에게 알림 발송
     @Transactional
     public void rejectReservation(Long id, String reason) {
         Reservation res = findById(id);

@@ -2,8 +2,10 @@
 <html th:replace="~{layout/base :: layout(~{::content})}" xmlns:th="http://www.thymeleaf.org">
 <body>
   <div th:fragment="content">
+    <!-- 회원가입 페이지 중앙 정렬 래퍼 (로그인보다 넓은 레이아웃) -->
     <div class="auth-wrapper-lg">
 
+      <!-- 상단 로고 및 타이틀 -->
       <div class="auth-header">
         <div class="auth-logo-mark">
           <i class="bi bi-person-plus" style="font-size:1.6rem;color:#fff;"></i>
@@ -12,14 +14,17 @@
         <p class="auth-subtitle">정보를 입력하여 새 계정을 생성하세요</p>
       </div>
 
+      <!-- 회원가입 폼 카드 -->
       <div class="card">
         <div class="card-top">
           <h2>회원가입</h2>
           <p>모든 항목을 정확히 입력해주세요</p>
         </div>
         <div class="card-bottom">
+          <!-- 회원가입 입력 폼 (SignupRequest 바인딩) -->
           <form th:action="@{/auth/signup}" th:object="${signupRequest}" method="post">
 
+            <!-- 아이디 / 이름 (2열 배치) -->
             <div class="form-row">
               <div class="flex-1">
                 <label class="form-label">아이디</label>
@@ -39,6 +44,7 @@
               </div>
             </div>
 
+            <!-- 비밀번호 -->
             <div class="mb-2">
               <label class="form-label">비밀번호</label>
               <input type="password" th:field="*{password}"
@@ -48,6 +54,7 @@
               <div class="invalid-feedback" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
             </div>
 
+            <!-- 이메일 -->
             <div class="mb-2">
               <label class="form-label">이메일</label>
               <input type="email" th:field="*{email}"
@@ -57,6 +64,7 @@
               <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
             </div>
 
+            <!-- 부서 (선택) -->
             <div class="mb-3">
               <label class="form-label">
                 부서 <span class="optional-label">(선택)</span>
@@ -74,6 +82,7 @@
 
           <hr class="divider">
 
+          <!-- 로그인 페이지 이동 링크 -->
           <div class="text-center">
             <span class="color-sub" style="font-size:0.875rem;">이미 계정이 있으신가요?</span>
             <a th:href="@{/auth/login}" class="auth-link">로그인 →</a>

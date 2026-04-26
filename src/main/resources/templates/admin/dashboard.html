@@ -4,6 +4,7 @@
 <body>
   <div th:fragment="content">
 
+    <!-- 페이지 헤더: 제목 + 회의실 관리 페이지 이동 버튼 -->
     <div class="page-header">
       <div>
         <h1 class="page-title">
@@ -16,12 +17,13 @@
       </a>
     </div>
 
+    <!-- 오류 메시지 (승인/반려 처리 실패 시 표시) -->
     <div th:if="${errorMessage}" class="alert-danger mb-3">
       <i class="bi bi-exclamation-circle-fill"></i>
       <span th:text="${errorMessage}"></span>
     </div>
 
-    <!-- Stats Row -->
+    <!-- 상단 통계 카드 3개: 승인 대기 건수 / 오늘 일정 수 / 현재 시각 -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon stat-icon-yellow">
@@ -52,7 +54,7 @@
       </div>
     </div>
 
-    <!-- Pending Reservations -->
+    <!-- 승인 대기 예약 목록 (승인/반려 처리 + 페이지네이션) -->
     <div class="card mb-3" style="margin-left: 0.5rem; margin-right: 0.5rem;">
       <div class="card-header">
         <div class="d-flex align-center gap-sm">
@@ -114,24 +116,23 @@
         <p>승인 대기 중인 예약이 없습니다.</p>
       </div>
 
-      <!-- Pagination -->
+      <!-- 페이지네이션 (총 페이지가 2 이상일 때만 표시) -->
       <div class="pagination" th:if="${pendingReservations.totalPages > 1}">
         <a th:href="@{/admin/dashboard(pendingPage=${pendingReservations.number - 1})}"
-           th:class="${pendingReservations.hasPrevious()} ? 'page-btn' : 'page-btn disabled'">
+          th:class="${pendingReservations.hasPrevious()} ? 'page-btn' : 'page-btn disabled'">
           <i class="bi bi-chevron-left"></i>
         </a>
         <a th:each="i : ${#numbers.sequence(0, pendingReservations.totalPages - 1)}"
-           th:href="@{/admin/dashboard(pendingPage=${i})}"
-           th:class="${i == pendingReservations.number} ? 'page-btn active' : 'page-btn'"
-           th:text="${i + 1}">1</a>
+          th:href="@{/admin/dashboard(pendingPage=${i})}"
+          th:class="${i == pendingReservations.number} ? 'page-btn active' : 'page-btn'" th:text="${i + 1}">1</a>
         <a th:href="@{/admin/dashboard(pendingPage=${pendingReservations.number + 1})}"
-           th:class="${pendingReservations.hasNext()} ? 'page-btn' : 'page-btn disabled'">
+          th:class="${pendingReservations.hasNext()} ? 'page-btn' : 'page-btn disabled'">
           <i class="bi bi-chevron-right"></i>
         </a>
       </div>
     </div>
 
-    <!-- Today's Schedule -->
+    <!-- 오늘의 전체 스케줄 (취소·반려 제외 활성 예약 목록) -->
     <div class="card" style="margin-left: 0.5rem; margin-right: 0.5rem;">
       <div class="card-header">
         <div class="d-flex align-center gap-sm">
@@ -178,13 +179,14 @@
     </div>
 
     <script>
+      // 현재 시각을 HH:MM:SS 형식으로 live-clock 요소에 1초마다 갱신
       function updateClock() {
         var now = new Date();
-        var h = String(now.getHours()).padStart(2, '0');
-        var m = String(now.getMinutes()).padStart(2, '0');
-        var s = String(now.getSeconds()).padStart(2, '0');
-        var el = document.getElementById('live-clock');
-        if (el) el.textContent = h + ':' + m + ':' + s;
+        var hour = String(now.getHours()).padStart(2, '0');
+        var minute = String(now.getMinutes()).padStart(2, '0');
+        var second = String(now.getSeconds()).padStart(2, '0');
+        var element = document.getElementById('live-clock');
+        if (element) element.textContent = hour + ':' + minute + ':' + second;
       }
       updateClock();
       setInterval(updateClock, 1000);

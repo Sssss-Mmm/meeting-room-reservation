@@ -16,7 +16,7 @@
 
 <body>
 
-  <!-- ══ SIDEBAR ══ -->
+  <!-- 사이드바 -->
   <aside class="sidebar">
     <a class="sidebar-logo" th:href="@{/reservations}">
       <div class="sidebar-logo-icon"><i class="bi bi-building"></i></div>
@@ -63,7 +63,7 @@
     </div>
   </aside>
 
-  <!-- ══ MAIN ══ -->
+  <!-- 메인 -->
   <div class="main-wrapper">
     <header class="main-topbar">
       <span class="topbar-title" id="topbar-page-title">Everspin Meeting</span>
@@ -100,33 +100,36 @@
     </header>
 
     <div class="page-content" th:replace="${content}">
-      <!-- content injected -->
     </div>
   </div>
 
   <script>
-    // 활성 nav 표시
+    // 현재 경로와 일치하는 nav-item에 active 클래스 추가
     const p = window.location.pathname;
     document.querySelectorAll('.nav-item[href]').forEach(el => {
       if (p.startsWith(el.getAttribute('href'))) el.classList.add('active');
     });
 
     // ── 알림 ──
+
+    // 쿠키에서 XSRF-TOKEN 값을 반환
     function getCsrfToken() {
       return document.cookie.split(';').map(c => c.trim())
         .find(c => c.startsWith('XSRF-TOKEN='))?.split('=')[1] ?? '';
     }
 
+    // ISO 날짜 문자열을 "방금 전 / n분 전 / n시간 전 / M월 D일" 형태로 변환
     function formatTime(iso) {
-      const d = new Date(iso);
+      const date = new Date(iso);
       const now = new Date();
-      const diff = Math.floor((now - d) / 1000);
+      const diff = Math.floor((now - date) / 1000);
       if (diff < 60) return '방금 전';
       if (diff < 3600) return Math.floor(diff / 60) + '분 전';
       if (diff < 86400) return Math.floor(diff / 3600) + '시간 전';
-      return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
     }
 
+    // 알림 목록을 DOM에 렌더링하고 뱃지 카운트를 업데이트
     function renderNotifs(items) {
       const list = document.getElementById('notifList');
       const badge = document.getElementById('notifBadge');
@@ -144,6 +147,7 @@
         </div>`).join('');
     }
 
+    // API를 호출하여 미읽음 알림 목록을 불러오고 렌더링
     function loadNotifs() {
       fetch('/api/notifications', { credentials: 'same-origin' })
         .then(r => r.ok ? r.json() : [])
@@ -151,6 +155,7 @@
         .catch(() => { });
     }
 
+    // 특정 알림을 읽음 처리하고 DOM에서 제거
     function markRead(id) {
       fetch('/api/notifications/' + id + '/read', {
         method: 'POST',
@@ -168,6 +173,7 @@
       }).catch(() => { });
     }
 
+    // 모든 알림을 일괄 읽음 처리하고 빈 상태로 초기화
     function markAllRead() {
       fetch('/api/notifications/read-all', {
         method: 'POST',
@@ -176,6 +182,7 @@
       }).then(() => renderNotifs([])).catch(() => { });
     }
 
+    // 알림 드롭다운 열기/닫기 토글
     function toggleNotif(e) {
       e.stopPropagation();
       const dd = document.getElementById('notifDropdown');
@@ -183,6 +190,7 @@
       if (open) loadNotifs();
     }
 
+    // 드롭다운 외부 클릭 시 닫기
     document.addEventListener('click', function (e) {
       const wrapper = document.getElementById('notifWrapper');
       if (wrapper && !wrapper.contains(e.target)) {
@@ -190,7 +198,7 @@
       }
     });
 
-    // 30초마다 뱃지 갱신 (드롭다운 닫혀 있을 때)
+    // 페이지 로드 시 알림 초기 로드 후, 30초마다 뱃지 갱신
     if (document.getElementById('notifWrapper')) {
       loadNotifs();
       setInterval(function () {

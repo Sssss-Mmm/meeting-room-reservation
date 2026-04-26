@@ -4,6 +4,7 @@
 <body>
   <div th:fragment="content">
 
+    <!-- 페이지 헤더: 제목 + 회의실 추가 버튼 -->
     <div class="page-header">
       <div>
         <h1 class="page-title">
@@ -16,6 +17,7 @@
       </button>
     </div>
 
+    <!-- 회의실 목록 테이블 (활성/비활성 토글 포함) -->
     <div class="card">
       <div th:if="${not #lists.isEmpty(rooms)}" class="overflow-x-auto">
         <table class="data-table w-100">
