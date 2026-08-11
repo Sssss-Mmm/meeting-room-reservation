@@ -3,6 +3,7 @@ package com.everspin.reservation.service;
 import com.everspin.reservation.domain.Room;
 import com.everspin.reservation.domain.User;
 import com.everspin.reservation.domain.enums.Role;
+import com.everspin.reservation.dto.ReservationRequest;
 import com.everspin.reservation.repository.ReservationRepository;
 import com.everspin.reservation.repository.RoomRepository;
 import com.everspin.reservation.repository.UserRepository;
@@ -70,7 +71,7 @@ class ReservationConcurrencyTest {
             executorService.submit(() -> {
                 try {
                     User user = userRepository.findById(userIds.get(index)).orElseThrow();
-                    reservationService.createReservation(user, roomId, "Meeting", "Discuss Something", start, end, 5);
+                    reservationService.createReservation(user, request(roomId, start, end));
                 } catch (Exception e) {
                 } finally {
                     latch.countDown();
@@ -82,5 +83,16 @@ class ReservationConcurrencyTest {
         
         long count = reservationRepository.count();
         assertThat(count).isEqualTo(1); // 동시성 제어로 인해 1개만 성공해야 함
+    }
+
+    private ReservationRequest request(Long roomId, LocalDateTime start, LocalDateTime end) {
+        ReservationRequest r = new ReservationRequest();
+        r.setRoomId(roomId);
+        r.setTitle("Meeting");
+        r.setDescription("Discuss Something");
+        r.setStartTime(start);
+        r.setEndTime(end);
+        r.setAttendees(5);
+        return r;
     }
 }
