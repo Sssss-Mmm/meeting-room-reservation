@@ -1,4 +1,4 @@
-# Everspin Meeting Room Reservation System
+# Meet Room Reservation System
 
 회의실 예약 및 관리 웹 애플리케이션입니다.
 
@@ -50,7 +50,7 @@ services:
 애플리케이션을 실행하기 전, 프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래와 같이 자신의 환경에 맞는 값을 설정해주세요.
 
 ```env
-MYSQL_DATABASE=everspin
+MYSQL_DATABASE=meetroom
 MYSQL_USER=myuser
 MYSQL_PASSWORD=mypassword
 MYSQL_ROOT_PASSWORD=myrootpassword
