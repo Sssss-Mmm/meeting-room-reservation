@@ -7,7 +7,6 @@ import com.meetroom.reservation.dto.ReservationRequest;
 import com.meetroom.reservation.repository.ReservationRepository;
 import com.meetroom.reservation.repository.RoomRepository;
 import com.meetroom.reservation.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
