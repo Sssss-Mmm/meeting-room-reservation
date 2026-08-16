@@ -56,6 +56,12 @@ MYSQL_PASSWORD=mypassword
 MYSQL_ROOT_PASSWORD=myrootpassword
 ```
 
+> **기존 사용자 주의:** DB 이름이 `everspin` → `meetroom` 으로 변경되었습니다.
+> MySQL 이미지는 데이터 디렉토리가 비어 있는 최초 기동 시에만 `MYSQL_DATABASE` 를 생성하므로,
+> 기존 `db-data` 볼륨이 남아 있으면 `Unknown database 'meetroom'` 으로 기동에 실패합니다.
+> `docker compose down -v` 로 볼륨을 삭제하거나(데이터 삭제됨),
+> 데이터를 유지하려면 `RENAME`/덤프 복원으로 스키마 이름을 옮기세요.
+
 ### 초기 계정
 
 애플리케이션 최초 실행 시 관리자 계정과 샘플 회의실이 자동으로 생성됩니다.
