@@ -6,3 +6,5 @@ build/
 !**/src/test/**/build/
 
 .env
+.vscode
+.claude

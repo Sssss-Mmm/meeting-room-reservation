@@ -1,4 +1,4 @@
-# Everspin Meeting Room Reservation System
+# Meet Room Reservation System
 
 회의실 예약 및 관리 웹 애플리케이션입니다.
 
@@ -50,11 +50,17 @@ services:
 애플리케이션을 실행하기 전, 프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래와 같이 자신의 환경에 맞는 값을 설정해주세요.
 
 ```env
-MYSQL_DATABASE=everspin
+MYSQL_DATABASE=meetroom
 MYSQL_USER=myuser
 MYSQL_PASSWORD=mypassword
 MYSQL_ROOT_PASSWORD=myrootpassword
 ```
+
+> **기존 사용자 주의:** DB 이름이 `everspin` → `meetroom` 으로 변경되었습니다.
+> MySQL 이미지는 데이터 디렉토리가 비어 있는 최초 기동 시에만 `MYSQL_DATABASE` 를 생성하므로,
+> 기존 `db-data` 볼륨이 남아 있으면 `Unknown database 'meetroom'` 으로 기동에 실패합니다.
+> `docker compose down -v` 로 볼륨을 삭제하거나(데이터 삭제됨),
+> 데이터를 유지하려면 `RENAME`/덤프 복원으로 스키마 이름을 옮기세요.
 
 ### 초기 계정
 

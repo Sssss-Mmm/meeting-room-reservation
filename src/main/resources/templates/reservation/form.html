@@ -19,72 +19,16 @@
         <i class="bi bi-exclamation-circle-fill"></i>
         <span th:text="${errorMessage}">오류</span>
       </div>
-      <!-- Flatpickr CSS -->
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
       <style>
-        .flatpickr-calendar {
-          font-family: 'Inter', sans-serif !important;
-          box-shadow: var(--shadow-md) !important;
-          border: 1px solid var(--border) !important;
-          border-radius: var(--radius) !important;
-        }
-
-        .flatpickr-day.selected {
-          background: var(--blue) !important;
-          border-color: var(--blue) !important;
-        }
-
-        .date-input-wrapper {
-          position: relative;
-        }
-
-        .date-input-wrapper .bi {
-          position: absolute;
-          right: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--text-light);
-          pointer-events: none;
-          font-size: 1rem;
-        }
-
-        .date-input-wrapper input {
-          padding-right: 2.5rem;
-          cursor: pointer;
-        }
-
         .time-row {
           display: grid;
-          grid-template-columns: 1fr auto 1fr;
-          gap: 0.5rem;
-          align-items: end;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.75rem;
         }
 
-        .time-col label {
+        .time-row label {
           display: block;
           margin-bottom: 0.4rem;
-        }
-
-        .time-inner {
-          display: flex;
-          gap: 0.4rem;
-          align-items: center;
-        }
-
-        .time-inner select {
-          flex: 1;
-        }
-
-        .time-sep-col {
-          display: flex;
-          align-items: center;
-          padding-bottom: 0.1rem;
-        }
-
-        .time-arrow {
-          font-size: 1.1rem;
-          color: var(--text-light);
-          margin-bottom: 0.35rem;
         }
 
         .attendees-stepper {
@@ -198,8 +142,6 @@
         <div class="card-body">
           <form th:action="@{/reservations/new}" th:object="${reservationRequest}" method="post" id="reservationForm">
 
-            <input type="hidden" id="startTime" name="startTime" th:field="*{startTime}">
-            <input type="hidden" id="endTime" name="endTime" th:field="*{endTime}">
             <input type="hidden" id="roomIdHidden" name="roomId" th:value="${reservationRequest.roomId}">
 
             <!-- 회의실 선택 -->
@@ -224,42 +166,20 @@
               <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
             </div>
 
-            <!-- 날짜 선택 -->
-            <div class="mb-2">
-              <label class="form-label">회의 날짜</label>
-              <div class="date-input-wrapper">
-                <input type="text" id="datePicker" class="form-control" placeholder="날짜를 선택하세요" readonly>
-                <i class="bi bi-calendar3"></i>
-              </div>
-            </div>
-
-            <!-- 시작·종료 시간 -->
+            <!-- 시작·종료 시간 (min/step으로 과거·30분 단위를 브라우저가 검증) -->
             <div class="mb-3">
               <div class="time-row">
-                <div class="time-col">
+                <div>
                   <label class="form-label">시작 시간</label>
-                  <div class="time-inner">
-                    <select id="startHour" class="form-select"></select>
-                    <span class="fw-600">:</span>
-                    <select id="startMin" class="form-select">
-                      <option value="00">00분</option>
-                      <option value="30">30분</option>
-                    </select>
-                  </div>
+                  <input type="datetime-local" id="startTime" th:field="*{startTime}" class="form-control"
+                    step="1800" required th:classappend="${#fields.hasErrors('startTime')} ? ' is-invalid'">
+                  <div class="invalid-feedback" th:if="${#fields.hasErrors('startTime')}" th:errors="*{startTime}"></div>
                 </div>
-                <div class="time-sep-col">
-                  <span class="time-arrow"><i class="bi bi-arrow-right"></i></span>
-                </div>
-                <div class="time-col">
+                <div>
                   <label class="form-label">종료 시간</label>
-                  <div class="time-inner">
-                    <select id="endHour" class="form-select"></select>
-                    <span class="fw-600">:</span>
-                    <select id="endMin" class="form-select">
-                      <option value="00">00분</option>
-                      <option value="30">30분</option>
-                    </select>
-                  </div>
+                  <input type="datetime-local" id="endTime" th:field="*{endTime}" class="form-control"
+                    step="1800" required th:classappend="${#fields.hasErrors('endTime')} ? ' is-invalid'">
+                  <div class="invalid-feedback" th:if="${#fields.hasErrors('endTime')}" th:errors="*{endTime}"></div>
                 </div>
               </div>
             </div>
@@ -322,131 +242,61 @@
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
     <script>
-      var selectedDate = '';
       var currentAttendees = 1;
       var maxCapacity = 999;
+      var startTime = document.getElementById('startTime');
+      var endTime = document.getElementById('endTime');
+      var BUSINESS_HOURS_MSG = '07시~22시 사이만 예약할 수 있습니다.';
 
-      // 오늘 날짜를 'YYYY-MM-DD' 형식 문자열로 반환
-      function getTodayStr() {
-        var today = new Date();
-        return today.getFullYear() + '-' +
-          String(today.getMonth() + 1).padStart(2, '0') + '-' +
-          String(today.getDate()).padStart(2, '0');
+      // Date -> datetime-local이 요구하는 'YYYY-MM-DDTHH:MM' (로컬 시각) 문자열
+      function toLocalValue(date) {
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
       }
 
-      // 시작·종료 시간 셀렉트를 07~22시 옵션으로 채우고, 현재 시각 기준 가장 가까운 30분 단위로 기본값 설정
-      function initHourSelects() {
-        ['startHour', 'endHour'].forEach(function (id) {
-          var selectElement = document.getElementById(id);
-          for (var hour = 7; hour <= 22; hour++) {
-            var optionElement = document.createElement('option');
-            optionElement.value = String(hour).padStart(2, '0');
-            optionElement.textContent = String(hour).padStart(2, '0') + '시';
-            selectElement.appendChild(optionElement);
-          }
-        });
-        var now = new Date();
-        var nextHour = now.getHours();
-        var nextMin = now.getMinutes() < 30 ? 30 : 0;
-        if (nextMin === 0) nextHour += 1;
-        nextHour = Math.min(Math.max(nextHour, 7), 21);
-        document.getElementById('startHour').value = String(nextHour).padStart(2, '0');
-        document.getElementById('startMin').value = String(nextMin).padStart(2, '0');
-        document.getElementById('endHour').value = String(Math.min(nextHour + 1, 22)).padStart(2, '0');
-        document.getElementById('endMin').value = String(nextMin).padStart(2, '0');
+      // min을 다음 30분 경계로 맞춘다 — step은 min 기준이라 이래야 :00/:30에만 걸린다
+      var earliest = new Date();
+      earliest.setSeconds(0, 0);
+      earliest.setMinutes(earliest.getMinutes() > 30 ? 60 : 30);
+      startTime.min = endTime.min = toLocalValue(earliest);
+
+      // 업무 시간(07~22시) 밖인지 — 값이 비었으면 required가 처리하므로 통과시킨다
+      function outOfHours(input) {
+        var hour = parseInt(input.value.slice(11, 13));
+        return input.value !== '' && (hour < 7 || hour > 22);
       }
 
-      // 오늘 날짜가 선택된 경우 이미 지난 시간 옵션을 disabled 처리
-      function disablePastHours() {
-        if (!selectedDate) return;
-        var isToday = (selectedDate === getTodayStr());
-        var now = new Date();
-        var curHour = now.getHours();
-        var curMin = now.getMinutes();
-        ['startHour', 'endHour'].forEach(function (id) {
-          var selectElement = document.getElementById(id);
-          Array.from(selectElement.options).forEach(function (optionElement) {
-            var hour = parseInt(optionElement.value);
-            optionElement.disabled = isToday && (hour < curHour || (hour === curHour && curMin >= 30));
-          });
-          if (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled) {
-            for (var i = 0; i < selectElement.options.length; i++) {
-              if (!selectElement.options[i].disabled) { selectElement.value = selectElement.options[i].value; break; }
-            }
-          }
-        });
-        ['startHour:startMin', 'endHour:endMin'].forEach(function (pair) {
-          var parts = pair.split(':');
-          var hSelectElement = document.getElementById(parts[0]);
-          var mSelectElement = document.getElementById(parts[1]);
-          var selHour = parseInt(hSelectElement.value);
-          Array.from(mSelectElement.options).forEach(function (optionElement) {
-            optionElement.disabled = isToday && selHour === curHour && parseInt(optionElement.value) <= curMin;
-          });
-          if (mSelectElement.options[mSelectElement.selectedIndex] && mSelectElement.options[mSelectElement.selectedIndex].disabled) {
-            mSelectElement.value = '30';
-          }
-        });
-      }
-
-      // 선택한 날짜와 시간을 조합해 hidden input(startTime, endTime)에 ISO 형식으로 저장
-      function syncHiddenFields() {
-        if (!selectedDate) return;
-        var startHour = document.getElementById('startHour').value;
-        var startMin = document.getElementById('startMin').value;
-        var endHour = document.getElementById('endHour').value;
-        var endMin = document.getElementById('endMin').value;
-        document.getElementById('startTime').value = selectedDate + 'T' + startHour + ':' + startMin;
-        document.getElementById('endTime').value = selectedDate + 'T' + endHour + ':' + endMin;
+      // HTML 속성으로 표현할 수 없는 규칙만 직접 검사 (과거·30분 단위·필수는 min/step/required 담당)
+      function validateTimes() {
+        startTime.setCustomValidity(outOfHours(startTime) ? BUSINESS_HOURS_MSG : '');
+        endTime.setCustomValidity(
+          outOfHours(endTime) ? BUSINESS_HOURS_MSG
+            : (startTime.value && endTime.value && endTime.value <= startTime.value)
+              ? '종료 시간은 시작 시간보다 이후여야 합니다.' : '');
         updateSummary();
       }
 
-      // 예약 시간 요약 박스를 갱신 (날짜·시간·소요 시간 표시, 종료가 시작보다 이전이면 숨김)
+      // 예약 시간 요약 박스를 갱신 (종료가 시작보다 이전이면 숨김)
       function updateSummary() {
         var summary = document.getElementById('bookingSummary');
-        if (!selectedDate) { summary.classList.remove('visible'); return; }
-        var startHour = document.getElementById('startHour').value;
-        var startMin = document.getElementById('startMin').value;
-        var endHour = document.getElementById('endHour').value;
-        var endMin = document.getElementById('endMin').value;
-        var startDT = new Date(selectedDate + 'T' + startHour + ':' + startMin);
-        var endDT = new Date(selectedDate + 'T' + endHour + ':' + endMin);
-        var diffMs = endDT - startDT;
-        if (diffMs <= 0) { summary.classList.remove('visible'); return; }
+        var diffMs = new Date(endTime.value) - new Date(startTime.value);
+        if (!startTime.value || !endTime.value || !(diffMs > 0)) {
+          summary.classList.remove('visible');
+          return;
+        }
         var diffH = Math.floor(diffMs / 3600000);
         var diffM = Math.floor((diffMs % 3600000) / 60000);
-        var durStr = '';
-        if (diffH > 0) durStr += diffH + '시간';
-        if (diffM > 0) durStr += (durStr ? ' ' : '') + diffM + '분';
-        var dateObj = new Date(selectedDate);
-        var dateLabel = (dateObj.getMonth() + 1) + '월 ' + dateObj.getDate() + '일';
-        document.getElementById('summaryText').textContent = dateLabel + '  ' + sh + ':' + sm + ' ~ ' + eh + ':' + em;
+        var durStr = (diffH > 0 ? diffH + '시간' : '') + (diffM > 0 ? (diffH > 0 ? ' ' : '') + diffM + '분' : '');
+        var startDate = new Date(startTime.value);
+        document.getElementById('summaryText').textContent =
+          (startDate.getMonth() + 1) + '월 ' + startDate.getDate() + '일  ' +
+          startTime.value.slice(11) + ' ~ ' + endTime.value.slice(11);
         document.getElementById('durationText').textContent = durStr;
         summary.classList.add('visible');
       }
 
-      // Flatpickr 날짜 선택기 초기화 (오늘 이후만 선택 가능, 날짜 변경 시 시간 재검증)
-      flatpickr('#datePicker', {
-        locale: 'ko',
-        dateFormat: 'Y-m-d',
-        minDate: 'today',
-        disableMobile: true,
-        onChange: function (selectedDates, dateStr) {
-          selectedDate = dateStr;
-          disablePastHours();
-          syncHiddenFields();
-        }
-      });
-
-      // 시간 셀렉트 변경 시 hidden input 동기화
-      ['startHour', 'startMin', 'endHour', 'endMin'].forEach(function (id) {
-        document.getElementById(id).addEventListener('change', function () {
-          if (id === 'startHour' || id === 'endHour') disablePastHours();
-          syncHiddenFields();
-        });
+      [startTime, endTime].forEach(function (input) {
+        input.addEventListener('change', validateTimes);
       });
 
       // 인원수 스테퍼의 +/- 버튼 활성 여부를 현재 값·최대 정원 기준으로 동기화
@@ -492,19 +342,7 @@
         syncStepper();
       });
 
-      // 폼 제출 전 클라이언트 유효성 검사 (날짜 미선택, 시간 역전, 과거 시간 차단)
-      document.getElementById('reservationForm').addEventListener('submit', function (e) {
-        syncHiddenFields();
-        if (!selectedDate) { e.preventDefault(); alert('날짜를 선택해주세요.'); return; }
-        var attendees = parseInt(document.getElementById('attendeesInput').value);
-        if (!attendees || attendees < 1) { e.preventDefault(); alert('참석 인원을 입력해주세요.'); return; }
-        var startTime = document.getElementById('startTime').value;
-        var endTime = document.getElementById('endTime').value;
-        if (new Date(startTime) >= new Date(endTime)) { e.preventDefault(); alert('종료 시간은 시작 시간보다 이후여야 합니다.'); return; }
-        if (new Date(startTime) <= new Date()) { e.preventDefault(); alert('과거 시간으로는 예약할 수 없습니다.'); return; }
-      });
-
-      initHourSelects();
+      validateTimes();
       syncStepper();
       // 회의실이 이미 선택된 상태(재진입 시)라면 정원 힌트 즉시 업데이트
       var initRoom = document.getElementById('roomSelect');
