@@ -25,13 +25,6 @@ public class Room {
     @Builder.Default
     private boolean active = true;
 
-    public void update(String name, String location, Integer capacity, String description) {
-        this.name = name;
-        this.location = location;
-        this.capacity = capacity;
-        this.description = description;
-    }
-
     public void toggleActive() {
         this.active = !this.active;
     }

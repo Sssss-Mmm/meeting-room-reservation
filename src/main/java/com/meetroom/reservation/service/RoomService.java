@@ -45,14 +45,6 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
-    // 회의실 정보 수정 (이름, 위치, 정원, 설명)
-    @Transactional
-    public Room updateRoom(Long id, Room updatedRoom) {
-        Room room = findById(id);
-        room.update(updatedRoom.getName(), updatedRoom.getLocation(), updatedRoom.getCapacity(), updatedRoom.getDescription());
-        return room;
-    }
-
     // 회의실 활성/비활성 상태 토글 (비활성화 시 예약 폼에서 제외됨)
     @Transactional
     public void toggleActive(Long id) {

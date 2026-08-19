@@ -32,11 +32,6 @@ public class ReservationService {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
 
-    // 특정 사용자의 전체 예약 목록을 최신순으로 반환
-    public List<Reservation> findByUserId(Long userId) {
-        return reservationRepository.findByUserIdOrderByStartTimeDesc(userId);
-    }
-
     // ID로 예약 단건 조회 (없으면 예외)
     public Reservation findById(Long id) {
         return reservationRepository.findById(id)
@@ -51,17 +46,16 @@ public class ReservationService {
 
     // 오늘 날짜의 활성 예약 전체 조회 (대시보드 오늘 예약 현황 표시용)
     public List<Reservation> findTodayReservations() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
-        return reservationRepository.findTodayActiveWithDetails(startOfDay, endOfDay);
+        LocalDate today = LocalDate.now();
+        return reservationRepository.findTodayActiveWithDetails(
+                today.atStartOfDay(), today.plusDays(1).atStartOfDay());
     }
 
     // 해당 월의 사용자 활성 예약을 일자(day)별로 그룹핑하여 반환 — 월별 달력 뷰 구성용
     public Map<Integer, List<Reservation>> findMonthlyCalendar(Long userId, int year, int month) {
         YearMonth ym = YearMonth.of(year, month);
-        LocalDateTime start = ym.atDay(1).atStartOfDay();
-        LocalDateTime end   = ym.atEndOfMonth().atTime(23, 59, 59);
-        return reservationRepository.findActiveByUserIdAndMonth(userId, start, end).stream()
+        return reservationRepository.findActiveByUserIdAndMonth(userId,
+                ym.atDay(1).atStartOfDay(), ym.plusMonths(1).atDay(1).atStartOfDay()).stream()
                 .collect(Collectors.groupingBy(r -> r.getStartTime().getDayOfMonth()));
     }
 
@@ -110,9 +104,7 @@ public class ReservationService {
         Reservation saved = reservationRepository.save(reservation);
 
         // 예약자에게 알림
-        notificationService.create(user,
-                String.format("[%s] '%s' 예약 신청이 접수되었습니다. 관리자 승인 후 확정됩니다.",
-                        room.getName(), request.getTitle()));
+        notifyOwner(saved, "예약 신청이 접수되었습니다. 관리자 승인 후 확정됩니다.");
 
         // 관리자 전원에게 알림
         userRepository.findByRole(Role.ROLE_ADMIN).forEach(admin ->
@@ -134,8 +126,7 @@ public class ReservationService {
             throw new IllegalStateException("이미 시작된 예약은 취소할 수 없습니다.");
         }
         res.cancel();
-        notificationService.create(res.getUser(),
-                String.format("[%s] '%s' 예약이 취소되었습니다.", res.getRoom().getName(), res.getTitle()));
+        notifyOwner(res, "예약이 취소되었습니다.");
     }
 
     // 관리자: 예약 승인 처리 및 예약자에게 알림 발송
@@ -143,8 +134,7 @@ public class ReservationService {
     public void approveReservation(Long id) {
         Reservation res = findById(id);
         res.confirm();
-        notificationService.create(res.getUser(),
-                String.format("[%s] '%s' 예약이 승인되었습니다.", res.getRoom().getName(), res.getTitle()));
+        notifyOwner(res, "예약이 승인되었습니다.");
     }
 
     // 관리자: 사유와 함께 예약 반려 처리 및 예약자에게 알림 발송
@@ -152,8 +142,12 @@ public class ReservationService {
     public void rejectReservation(Long id, String reason) {
         Reservation res = findById(id);
         res.reject(reason);
+        notifyOwner(res, "예약이 반려되었습니다. 사유: " + reason);
+    }
+
+    // 예약자 알림은 항상 "[회의실] '제목' 내용" 형식 — 포맷을 이 한 곳에서만 관리한다
+    private void notifyOwner(Reservation res, String message) {
         notificationService.create(res.getUser(),
-                String.format("[%s] '%s' 예약이 반려되었습니다. 사유: %s",
-                        res.getRoom().getName(), res.getTitle(), reason));
+                String.format("[%s] '%s' %s", res.getRoom().getName(), res.getTitle(), message));
     }
 }

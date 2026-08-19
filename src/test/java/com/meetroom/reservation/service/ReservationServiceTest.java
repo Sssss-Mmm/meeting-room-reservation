@@ -12,7 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,6 +82,27 @@ class ReservationServiceTest {
 
         assertThat(pending.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
         verify(notificationService).create(any(), any());
+    }
+
+    @Test
+    void 오늘_예약_조회는_자정_직전_예약도_포함한다() {
+        reservationService.findTodayReservations();
+
+        // 23:59:59로 끊으면 23:59:59.5 예약이 누락된다 — 다음날 자정 '미만'으로 조회해야 한다
+        verify(reservationRepository).findTodayActiveWithDetails(
+                LocalDate.now().atStartOfDay(),
+                LocalDate.now().plusDays(1).atStartOfDay());
+    }
+
+    @Test
+    void 월별_달력_조회는_말일_자정_직전_예약도_포함한다() {
+        given(reservationRepository.findActiveByUserIdAndMonth(any(), any(), any())).willReturn(List.of());
+
+        reservationService.findMonthlyCalendar(10L, 2026, 2);
+
+        verify(reservationRepository).findActiveByUserIdAndMonth(10L,
+                LocalDate.of(2026, 2, 1).atStartOfDay(),
+                LocalDate.of(2026, 3, 1).atStartOfDay());
     }
 
     private Reservation reservation(ReservationStatus status) {

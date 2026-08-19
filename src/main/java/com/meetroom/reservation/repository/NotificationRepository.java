@@ -11,9 +11,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     // 해당 사용자의 읽지 않은 알림을 최신순으로 조회
     List<Notification> findByUserIdAndReadFalseOrderByCreatedAtDesc(Long userId);
 
-    // 해당 사용자의 읽지 않은 알림 개수 반환
-    long countByUserIdAndReadFalse(Long userId);
-
     // 해당 사용자의 미읽음 알림 전체를 읽음 처리
     @Modifying
     @Query("UPDATE Notification n SET n.read = true WHERE n.user.id = :userId AND n.read = false")

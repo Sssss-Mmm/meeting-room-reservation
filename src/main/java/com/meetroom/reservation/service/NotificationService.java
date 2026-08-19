@@ -30,11 +30,6 @@ public class NotificationService {
         return notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId);
     }
 
-    // 해당 사용자의 읽지 않은 알림 개수 반환 (헤더 배지 카운트용)
-    public long countUnread(Long userId) {
-        return notificationRepository.countByUserIdAndReadFalse(userId);
-    }
-
     // 특정 알림을 읽음 처리 (본인 알림인지 확인 후 처리)
     @Transactional
     public void markRead(Long notificationId, Long userId) {
