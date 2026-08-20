@@ -26,23 +26,14 @@ public class AdminController {
     }
 
     @PostMapping("/reservations/{id}/approve")
-    public String approveReservation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            reservationService.approveReservation(id);
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
+    public String approveReservation(@PathVariable Long id) {
+        reservationService.approveReservation(id);
         return "redirect:/admin/dashboard";
     }
 
     @PostMapping("/reservations/{id}/reject")
-    public String rejectReservation(@PathVariable Long id, @RequestParam String reason,
-                                    RedirectAttributes redirectAttributes) {
-        try {
-            reservationService.rejectReservation(id, reason);
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
+    public String rejectReservation(@PathVariable Long id, @RequestParam String reason) {
+        reservationService.rejectReservation(id, reason);
         return "redirect:/admin/dashboard";
     }
 
@@ -62,5 +53,13 @@ public class AdminController {
     public String toggleRoomActive(@PathVariable Long id) {
         roomService.toggleActive(id);
         return "redirect:/admin/rooms";
+    }
+
+    // 도메인·서비스가 거부한 요청은 모두 여기로 모인다 — 핸들러마다 try/catch를 두면
+    // 잡는 예외 타입이 어긋나 500으로 새기 쉽다 (승인/반려는 IllegalStateException을 던진다)
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public String handleRejectedRequest(RuntimeException e, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        return "redirect:/admin/dashboard";
     }
 }

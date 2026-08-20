@@ -3,6 +3,11 @@
 <body>
 <div th:fragment="content">
 
+  <div th:if="${errorMessage}" class="alert-danger mb-2">
+    <i class="bi bi-exclamation-circle-fill"></i>
+    <span th:text="${errorMessage}"></span>
+  </div>
+
   <!-- 캘린더 헤더 -->
   <div class="calendar-nav">
     <div class="calendar-nav-left">

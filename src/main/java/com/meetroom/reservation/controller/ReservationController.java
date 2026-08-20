@@ -80,14 +80,16 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/cancel")
-    public String cancelReservation(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails,
-                                    RedirectAttributes redirectAttributes) {
-        try {
-            reservationService.cancelReservation(id, userDetails.getUser().getId());
-            return "redirect:/reservations";
-        } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-            return "redirect:/reservations/" + id;
-        }
+    public String cancelReservation(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        reservationService.cancelReservation(id, userDetails.getUser().getId());
+        return "redirect:/reservations";
+    }
+
+    // 거부된 요청의 출구를 한 곳으로 모은다 — 없는 예약 조회/취소가 500으로 새지 않게
+    // (폼 제출은 입력값을 살려 다시 그려야 하므로 submitReservation이 직접 처리한다)
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public String handleRejectedRequest(RuntimeException e, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        return "redirect:/reservations";
     }
 }
