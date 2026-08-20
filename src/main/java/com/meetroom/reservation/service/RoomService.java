@@ -39,6 +39,13 @@ public class RoomService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회의실입니다."));
     }
 
+    // 예약 생성 전용 조회 — 같은 회의실 예약이 이 행에서 직렬화된다
+    // ponytail: 회의실 단위 락. 한 회의실에 동시 예약이 몰려 대기가 길어지면 시간대 단위로 쪼갠다
+    public Room findByIdForUpdate(Long id) {
+        return roomRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회의실입니다."));
+    }
+
     // 회의실 생성
     @Transactional
     public Room createRoom(Room room) {

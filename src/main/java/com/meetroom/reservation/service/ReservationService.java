@@ -70,7 +70,9 @@ public class ReservationService {
     // 예약 생성: 유효성 검증 → 비관적 락으로 중복 예약 방지 → 저장 → 예약자·관리자 알림 발송
     @Transactional
     public Reservation createReservation(User user, ReservationRequest request) {
-        Room room = roomService.findById(request.getRoomId());
+        // 겹침 검사부터 저장까지를 회의실 행 락으로 감싼다 (아래 겹침 조회의 락만으로는
+        // 예약이 아직 없을 때 잠글 행이 없어 DB 엔진의 갭 락 유무에 결과가 갈린다)
+        Room room = roomService.findByIdForUpdate(request.getRoomId());
         if (!room.isActive()) {
             throw new IllegalArgumentException("비활성화된 회의실입니다.");
         }
