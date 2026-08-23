@@ -47,6 +47,19 @@ class ReservationFormRenderTest {
     }
 
     @Test
+    void 빈_방_검색에서_넘어오면_회의실과_시간이_미리_채워진다() throws Exception {
+        mockMvc.perform(get("/reservations/new").with(user(principal))
+                        .param("roomId", "2")
+                        .param("startTime", "2099-01-01T14:00")
+                        .param("endTime", "2099-01-01T15:00")
+                        .param("attendees", "6"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("value=\"2099-01-01T14:00")))
+                .andExpect(content().string(containsString("value=\"2099-01-01T15:00")))
+                .andExpect(content().string(containsString("value=\"6\"")));
+    }
+
+    @Test
     void 검증_실패로_폼을_다시_그릴_때_입력값이_datetime_local_형식으로_유지된다() throws Exception {
         mockMvc.perform(post("/reservations/new").with(user(principal)).with(csrf())
                         .param("roomId", "1")

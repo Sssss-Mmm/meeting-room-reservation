@@ -15,48 +15,55 @@
       </div>
     </div>
 
-    <!-- 회의실 카드 그리드 (3열 반응형) -->
-    <div class="room-grid" th:if="${not rooms.isEmpty()}">
-      <!-- 회의실 카드 1개 -->
-      <div th:each="room : ${rooms.content}">
-        <div class="card room-card" style="padding:1.5rem;">
-          <!-- 카드 상단: 아이콘 + 회의실명 + 위치 + 정원 + 설명 -->
-          <div>
-            <div class="room-card-header">
-              <div class="room-icon">
-                <i class="bi bi-door-open color-blue" style="font-size:1.2rem;"></i>
-              </div>
-              <div>
-                <h3 class="room-name" th:text="${room.name}">회의실명</h3>
-                <p class="room-location" th:text="${room.location}">위치</p>
-              </div>
-            </div>
+    <!-- 빈 방 찾기: 시간대·인원을 넣으면 그때 예약 가능한 회의실만 보여준다 -->
+    <form class="card mb-2" method="get" th:action="@{/rooms}"
+          style="padding:1rem;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;">
+      <div style="flex:1 1 200px;">
+        <label class="form-label" for="start">시작</label>
+        <input type="datetime-local" id="start" name="start" step="1800" required
+               class="form-control" th:value="${searchStart}">
+      </div>
+      <div style="flex:1 1 200px;">
+        <label class="form-label" for="end">종료</label>
+        <input type="datetime-local" id="end" name="end" step="1800" required
+               class="form-control" th:value="${searchEnd}">
+      </div>
+      <div style="flex:0 1 120px;">
+        <label class="form-label" for="attendees">인원</label>
+        <input type="number" id="attendees" name="attendees" min="1" class="form-control" th:value="${searchAttendees != null ? searchAttendees : 1}">
+      </div>
+      <button type="submit" class="btn-primary"><i class="bi bi-search"></i> 빈 방 찾기</button>
+      <a th:if="${availableRooms != null}" th:href="@{/rooms}" class="btn-secondary">전체 보기</a>
+    </form>
 
-            <div class="capacity-badge">
-              <i class="bi bi-people-fill"></i>
-              최대 <span th:text="${room.capacity}">0</span>명
-            </div>
+    <div th:if="${errorMessage}" class="alert-danger mb-2" th:text="${errorMessage}"></div>
 
-            <p class="color-sub" style="font-size:0.85rem;line-height:1.6;margin:0;" th:text="${room.description}">회의실
-              설명</p>
-          </div>
-
-          <!-- 카드 하단: 예약 버튼 (비로그인 시 로그인 유도 문구) -->
-          <div class="room-card-footer">
-            <a th:href="@{/reservations/new(roomId=${room.id})}" sec:authorize="isAuthenticated()"
-              class="btn-secondary w-100 justify-center" style="padding:0.55rem;">
-              <i class="bi bi-calendar-plus"></i> 이 회의실 예약
-            </a>
-            <p sec:authorize="!isAuthenticated()" class="text-center color-sub" style="font-size:0.78rem;margin:0;">
-              예약하려면 <a th:href="@{/auth/login}" class="color-blue fw-600" style="text-decoration:none;">로그인</a>이 필요합니다
-            </p>
-          </div>
+    <!-- 검색 결과 -->
+    <div th:if="${availableRooms != null}">
+      <div class="room-grid" th:if="${not #lists.isEmpty(availableRooms)}">
+        <div th:each="room : ${availableRooms}">
+          <div th:replace="~{room/card :: roomCard(${room}, ${searchStart}, ${searchEnd}, ${searchAttendees})}"></div>
+        </div>
+      </div>
+      <div class="card" th:if="${#lists.isEmpty(availableRooms)}">
+        <div class="empty-state">
+          <i class="bi bi-calendar-x"></i>
+          <p>해당 시간대에 예약 가능한 회의실이 없습니다.</p>
         </div>
       </div>
     </div>
 
+    <!-- 회의실 카드 그리드 (3열 반응형) -->
+    <div class="room-grid" th:if="${availableRooms == null and not rooms.isEmpty()}">
+      <!-- 회의실 카드 1개 -->
+      <div th:each="room : ${rooms.content}">
+        <div th:replace="~{room/card :: roomCard(${room}, null, null, null)}"></div>
+      </div>
+    </div>
+
+
     <!-- 페이지네이션 (총 페이지가 2 이상일 때만 표시) -->
-    <div class="pagination" th:if="${rooms.totalPages > 1}">
+    <div class="pagination" th:if="${availableRooms == null and rooms.totalPages > 1}">
       <a th:href="@{/rooms(page=${rooms.number - 1})}"
         th:class="${rooms.hasPrevious()} ? 'page-btn' : 'page-btn disabled'">
         <i class="bi bi-chevron-left"></i>
@@ -68,7 +75,7 @@
       </a>
     </div>
 
-    <div class="card" th:if="${rooms.isEmpty()}">
+    <div class="card" th:if="${availableRooms == null and rooms.isEmpty()}">
       <div class="empty-state">
         <i class="bi bi-building-slash"></i>
         <p>등록된 회의실이 없습니다.</p>

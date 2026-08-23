@@ -28,6 +28,7 @@
               <th>위치</th>
               <th>수용 인원</th>
               <th>상태</th>
+              <th>승인 정책</th>
               <th>관리</th>
             </tr>
           </thead>
@@ -57,6 +58,14 @@
                 <span th:if="${!room.active}" class="badge badge-cancelled"><i class="bi bi-circle-fill" style="font-size:0.4rem;"></i>사용 불가</span>
               </td>
               <td>
+                <span th:if="${room.needsApproval}" class="badge badge-pending">승인 필요</span>
+                <span th:unless="${room.needsApproval}" class="badge badge-confirmed">즉시 확정</span>
+              </td>
+              <td>
+                <form th:action="@{/admin/rooms/{id}/toggle-approval(id=${room.id})}" method="post" class="m-0 mb-1">
+                  <button type="submit" class="btn-secondary btn-sm"
+                          th:text="${room.needsApproval} ? '즉시 확정으로' : '승인 필요로'"></button>
+                </form>
                 <form th:action="@{/admin/rooms/{id}/toggle(id=${room.id})}" method="post" class="m-0">
                   <button type="submit" th:class="${room.active} ? 'btn-danger btn-sm' : 'btn-secondary btn-sm'"
                           th:text="${room.active} ? '비활성화' : '활성화'">
@@ -98,6 +107,12 @@
             <div class="mb-2">
               <label class="form-label">수용 인원</label>
               <input type="number" name="capacity" class="form-control" value="4" min="1" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label d-flex align-center gap-xs">
+                <input type="checkbox" name="needsApproval" value="true">
+                관리자 승인 후 확정 (체크 안 하면 예약 즉시 확정)
+              </label>
             </div>
             <div class="mb-2">
               <label class="form-label">

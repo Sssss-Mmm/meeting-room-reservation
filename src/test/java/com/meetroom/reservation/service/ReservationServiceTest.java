@@ -5,6 +5,7 @@ import com.meetroom.reservation.domain.Room;
 import com.meetroom.reservation.domain.User;
 import com.meetroom.reservation.domain.enums.ReservationStatus;
 import com.meetroom.reservation.domain.enums.Role;
+import com.meetroom.reservation.dto.ReservationRequest;
 import com.meetroom.reservation.repository.ReservationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -103,6 +105,56 @@ class ReservationServiceTest {
         verify(reservationRepository).findActiveByUserIdAndMonth(10L,
                 LocalDate.of(2026, 2, 1).atStartOfDay(),
                 LocalDate.of(2026, 3, 1).atStartOfDay());
+    }
+
+    @Test
+    void 승인이_필요없는_회의실은_예약_즉시_확정된다() {
+        // given: 자유 예약 회의실 (needsApproval = false)
+        given(roomService.findByIdForUpdate(1L)).willReturn(room(false));
+        given(reservationRepository.findOverlappingReservationsWithLock(any(), any(), any())).willReturn(List.of());
+        given(reservationRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        Reservation created = reservationService.createReservation(user(), request());
+
+        // then: 관리자를 거치지 않고 바로 확정
+        assertThat(created.getStatus()).isEqualTo(ReservationStatus.CONFIRMED);
+        // 그리고 관리자 알림도 발송되지 않는다 (승인할 게 없다)
+        verify(userRepository, never()).findByRole(any());
+    }
+
+    @Test
+    void 승인이_필요한_회의실은_대기_상태로_생성되고_관리자에게_알림이_간다() {
+        given(roomService.findByIdForUpdate(1L)).willReturn(room(true));
+        given(reservationRepository.findOverlappingReservationsWithLock(any(), any(), any())).willReturn(List.of());
+        given(reservationRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+        given(userRepository.findByRole(Role.ROLE_ADMIN)).willReturn(List.of(mock(User.class)));
+
+        Reservation created = reservationService.createReservation(user(), request());
+
+        assertThat(created.getStatus()).isEqualTo(ReservationStatus.PENDING);
+        verify(userRepository).findByRole(Role.ROLE_ADMIN);
+    }
+
+    private ReservationRequest request() {
+        ReservationRequest req = new ReservationRequest();
+        req.setRoomId(1L);
+        req.setTitle("회의");
+        req.setStartTime(LocalDateTime.now().plusDays(1));
+        req.setEndTime(LocalDateTime.now().plusDays(1).plusHours(1));
+        req.setAttendees(5);
+        return req;
+    }
+
+    private User user() {
+        return User.builder()
+                .id(10L).username("user").password("pw")
+                .name("사용자").email("user@test.com").role(Role.ROLE_USER)
+                .build();
+    }
+
+    private Room room(boolean needsApproval) {
+        return Room.builder().id(1L).name("회의실A").location("1F")
+                .capacity(10).active(true).needsApproval(needsApproval).build();
     }
 
     private Reservation reservation(ReservationStatus status) {

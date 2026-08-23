@@ -32,7 +32,8 @@
 
       <div th:if="${param.success}" class="alert-success mb-2">
         <i class="bi bi-check-circle-fill"></i>
-        예약이 신청되었습니다. 관리자 승인 후 확정됩니다.
+        <span th:if="${param.success[0] == 'CONFIRMED'}">예약이 확정되었습니다.</span>
+        <span th:unless="${param.success[0] == 'CONFIRMED'}">예약이 신청되었습니다. 관리자 승인 후 확정됩니다.</span>
       </div>
 
       <div class="card" style="overflow:hidden;">

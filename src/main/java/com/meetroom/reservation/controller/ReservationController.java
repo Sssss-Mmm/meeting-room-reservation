@@ -43,9 +43,9 @@ public class ReservationController {
         return "reservation/list";
     }
 
+    // reservationRequest는 쿼리 파라미터에서 바인딩된다 — 빈 방 검색 결과에서 넘어오면 폼이 미리 채워진다
     @GetMapping("/new")
-    public String newReservationForm(Model model) {
-        model.addAttribute("reservationRequest", new ReservationRequest());
+    public String newReservationForm(@ModelAttribute ReservationRequest reservationRequest, Model model) {
         model.addAttribute("rooms", roomService.findActiveRooms());
         return "reservation/form";
     }
@@ -58,15 +58,16 @@ public class ReservationController {
             return "reservation/form";
         }
 
+        Reservation created;
         try {
-            reservationService.createReservation(userDetails.getUser(), request);
+            created = reservationService.createReservation(userDetails.getUser(), request);
         } catch (IllegalArgumentException | IllegalStateException e) {
             model.addAttribute("rooms", roomService.findActiveRooms());
             model.addAttribute("errorMessage", e.getMessage());
             return "reservation/form";
         }
 
-        return "redirect:/reservations?success=true";
+        return "redirect:/reservations?success=" + created.getStatus();
     }
 
     @GetMapping("/{id}")

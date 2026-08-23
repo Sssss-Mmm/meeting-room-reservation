@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -31,6 +32,14 @@ public class RoomService {
     // 활성화된 회의실 목록을 페이지 단위로 조회 (회의실 목록 페이지, 한 페이지 9개)
     public Page<Room> findActiveRooms(int page) {
         return roomRepository.findByActiveTrue(PageRequest.of(page, 9));
+    }
+
+    // 요청 시간대에 예약 가능한 회의실 검색 (빈 방 찾기)
+    public List<Room> findAvailableRooms(LocalDateTime start, LocalDateTime end, int attendees) {
+        if (!end.isAfter(start)) {
+            throw new IllegalArgumentException("종료 시간은 시작 시간 이후여야 합니다.");
+        }
+        return roomRepository.findAvailable(start, end, attendees);
     }
 
     // ID로 회의실 단건 조회 (없으면 예외)
@@ -57,5 +66,12 @@ public class RoomService {
     public void toggleActive(Long id) {
         Room room = findById(id);
         room.toggleActive();
+    }
+
+    // 승인 정책 토글 (승인 필요 ↔ 즉시 확정)
+    @Transactional
+    public void toggleNeedsApproval(Long id) {
+        Room room = findById(id);
+        room.toggleNeedsApproval();
     }
 }

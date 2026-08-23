@@ -55,6 +55,12 @@ public class AdminController {
         return "redirect:/admin/rooms";
     }
 
+    @PostMapping("/rooms/{id}/toggle-approval")
+    public String toggleRoomApproval(@PathVariable Long id) {
+        roomService.toggleNeedsApproval(id);
+        return "redirect:/admin/rooms";
+    }
+
     // 도메인·서비스가 거부한 요청은 모두 여기로 모인다 — 핸들러마다 try/catch를 두면
     // 잡는 예외 타입이 어긋나 500으로 새기 쉽다 (승인/반려는 IllegalStateException을 던진다)
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})

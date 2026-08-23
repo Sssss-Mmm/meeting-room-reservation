@@ -100,12 +100,16 @@ public class ReservationService {
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .attendees(request.getAttendees())
-                .status(ReservationStatus.PENDING)
+                .status(room.isNeedsApproval() ? ReservationStatus.PENDING : ReservationStatus.CONFIRMED)
                 .build();
 
         Reservation saved = reservationRepository.save(reservation);
 
-        // 예약자에게 알림
+        if (!room.isNeedsApproval()) {
+            notifyOwner(saved, "예약이 확정되었습니다.");
+            return saved;
+        }
+
         notifyOwner(saved, "예약 신청이 접수되었습니다. 관리자 승인 후 확정됩니다.");
 
         // 관리자 전원에게 알림
